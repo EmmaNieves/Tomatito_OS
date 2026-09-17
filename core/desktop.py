@@ -155,9 +155,12 @@ class Desktop(QWidget):
     def _populate_icons(self):
         """Crea iconos para las aplicaciones marcadas con desktop_icon=True."""
         for i, app_def in enumerate(self._registry.desktop_apps()):
+            icon_path = self._resources.get_icon_path(app_def.icon_key)
+            pix = QPixmap(icon_path) if icon_path else None
             icon = DesktopIcon(
                 label=app_def.name,
                 emoji=app_def.emoji,
+                pixmap=pix,
                 parent=self._work_area,
             )
             x = ICON_GRID_START.x()

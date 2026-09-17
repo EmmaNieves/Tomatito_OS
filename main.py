@@ -62,7 +62,7 @@ def _register_apps(registry: AppRegistry) -> None:
     registry.register(AppDefinition(
         app_id      = "tomatogame",
         name        = "TOMÁte Salvajes",
-        icon_key    = "my_pictures",
+        icon_key    = "tomatogame",
         emoji       = "🍅",
         app_class   = GameApp,
         desktop_icon= True,
