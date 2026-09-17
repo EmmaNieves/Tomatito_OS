@@ -254,8 +254,20 @@ class WindowFrame(QWidget):
         self._anim_fade.start()
 
     def _request_close(self):
+        self._cleanup_content()
         self._emit_close_requested()
         self.close()
+        self.deleteLater()
+
+    def _cleanup_content(self):
+        if hasattr(self, "_content_layout") and self._content_layout:
+            for i in range(self._content_layout.count()):
+                item = self._content_layout.itemAt(i)
+                if item and item.widget():
+                    try:
+                        item.widget().close()
+                    except Exception:
+                        pass
 
     def _emit_close_requested(self):
         if not self._close_emitted:
@@ -263,6 +275,7 @@ class WindowFrame(QWidget):
             self.close_requested.emit()
 
     def closeEvent(self, event: QCloseEvent) -> None:
+        self._cleanup_content()
         self._emit_close_requested()
         super().closeEvent(event)
 

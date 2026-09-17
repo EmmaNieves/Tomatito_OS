@@ -98,3 +98,14 @@ class GameApp(BaseApp):
             frame = frame.parentWidget()
         if frame:
             frame.close()
+
+    def closeEvent(self, event) -> None:
+        try:
+            if hasattr(self, "_process") and self._process:
+                if self._process.state() == QProcess.ProcessState.Running:
+                    self._process.kill()
+                    self._process.waitForFinished(300)
+                self._process = None
+        except Exception:
+            pass
+        super().closeEvent(event)

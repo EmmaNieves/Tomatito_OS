@@ -325,6 +325,17 @@ class CameraApp(BaseApp):
         pixmap.save(save_path, "JPEG", 92)
 
     def closeEvent(self, event) -> None:
-        if self._camera:
-            self._camera.stop()
+        try:
+            if hasattr(self, "_camera") and self._camera:
+                self._camera.stop()
+                self._camera = None
+            if hasattr(self, "_session") and self._session:
+                self._session = None
+            if hasattr(self, "_osd_overlay") and self._osd_overlay:
+                if hasattr(self._osd_overlay, "clock_timer") and self._osd_overlay.clock_timer:
+                    self._osd_overlay.clock_timer.stop()
+                if hasattr(self._osd_overlay, "flash_timer") and self._osd_overlay.flash_timer:
+                    self._osd_overlay.flash_timer.stop()
+        except Exception:
+            pass
         super().closeEvent(event)

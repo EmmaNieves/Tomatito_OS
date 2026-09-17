@@ -443,6 +443,12 @@ class MusicApp(BaseApp):
         self._btn_play.setText("⏸")
 
     def closeEvent(self, event) -> None:
-        if self._player:
-            self._player.stop()
+        try:
+            if hasattr(self, "_player") and self._player:
+                self._player.stop()
+                self._player = None
+            if hasattr(self, "_audio_out") and self._audio_out:
+                self._audio_out = None
+        except Exception:
+            pass
         super().closeEvent(event)
