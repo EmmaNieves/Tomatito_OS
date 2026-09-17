@@ -50,9 +50,7 @@ class GameApp(BaseApp):
             QTimer.singleShot(0, self._launch_and_hide)
 
     def _launch_and_hide(self) -> None:
-        win = self.window()
-        if win:
-            win.showMinimized()
+        # El escritorio de tomatitOS permanece activo en pantalla completa detrás del juego
         self._launch_game()
 
     def _launch_game(self) -> None:

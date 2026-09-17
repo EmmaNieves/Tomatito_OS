@@ -73,24 +73,26 @@ class BirthdayCelebrationOverlay(QWidget):
         self._anim_timer.setInterval(20)
         self._anim_timer.timeout.connect(self._on_tick)
 
-        self._seq_timer = QTimer(self)
-        self._seq_timer.setSingleShot(True)
+        self._timer_phase1 = QTimer(self)
+        self._timer_phase1.setSingleShot(True)
+        self._timer_phase1.timeout.connect(self._phase_1_reveal)
+
+        self._timer_phase2 = QTimer(self)
+        self._timer_phase2.setSingleShot(True)
+        self._timer_phase2.timeout.connect(self._phase_2_applause)
 
     def start_sequence(self):
         """Inicia la secuencia de celebración con la pausa de 1 segundo."""
         self._opacity = 0.0
         self._text_stage = 0
+        self._timer_phase1.stop()
+        self._timer_phase2.stop()
         self.showFullScreen()
         self.raise_()
         self.activateWindow()
 
         # 1 segundo de silencio
-        try:
-            self._seq_timer.timeout.disconnect()
-        except Exception:
-            pass
-        self._seq_timer.timeout.connect(self._phase_1_reveal)
-        self._seq_timer.start(1000)
+        self._timer_phase1.start(1000)
 
     def _phase_1_reveal(self):
         # Generar partículas
@@ -105,8 +107,7 @@ class BirthdayCelebrationOverlay(QWidget):
         self._text_stage = 1
 
         # Pasar a la siguiente frase y aplausos en 3.5 segundos
-        self._seq_timer.timeout.connect(self._phase_2_applause)
-        self._seq_timer.start(3500)
+        self._timer_phase2.start(3500)
 
     def _phase_2_applause(self):
         self._text_stage = 2
@@ -175,6 +176,8 @@ class BirthdayCelebrationOverlay(QWidget):
     def mousePressEvent(self, event):
         if self._text_stage >= 2:
             self._anim_timer.stop()
+            self._timer_phase1.stop()
+            self._timer_phase2.stop()
             self.hide()
             self.close()
         super().mousePressEvent(event)

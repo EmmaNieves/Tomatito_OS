@@ -26,7 +26,8 @@ def current_zone(zones, x):
 
 def main():
     pygame.init()
-    screen = pygame.display.set_mode((settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT))
+    flags = pygame.FULLSCREEN | pygame.NOFRAME
+    screen = pygame.display.set_mode((0, 0), flags)
     pygame.display.set_caption(settings.TITLE)
 
     if sys.platform == "win32":
@@ -34,7 +35,7 @@ def main():
             import ctypes
             hwnd = pygame.display.get_wm_info().get("window")
             if hwnd:
-                ctypes.windll.user32.ShowWindow(hwnd, 9)
+                ctypes.windll.user32.ShowWindow(hwnd, 3)  # SW_MAXIMIZE
                 ctypes.windll.user32.SetForegroundWindow(hwnd)
         except Exception:
             pass
