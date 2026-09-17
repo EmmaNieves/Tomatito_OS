@@ -1,18 +1,17 @@
 """
-window_frame.py — Marco de ventana estilo Windows XP.
+window_frame.py — Marco de ventana estilo Windows XP con micro-animaciones.
 
 Características:
-- Barra de título con degradado azul y botones Minimizar / Maximizar / Cerrar.
-- Arrastre con el ratón dentro del escritorio.
-- Doble clic en la barra de título: maximizar / restaurar.
-- Alt+F4 y Esc para cerrar/cancelar.
+- Transiciones sutiles de apertura, minimización y maximización (~120ms).
+- Respuesta visual retro coherente en la barra de título y botones.
+- Atajos Alt+F4 y Esc.
 - Notificación garantizada de cierre al destruir o cerrar el marco.
 """
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QSizePolicy
 )
-from PyQt6.QtCore import Qt, QPoint, pyqtSignal, QSize, QRect
+from PyQt6.QtCore import Qt, QPoint, pyqtSignal, QSize, QRect, QPropertyAnimation, QEasingCurve
 from PyQt6.QtGui import QPainter, QLinearGradient, QColor, QFont, QPen, QPixmap, QKeyEvent, QCloseEvent
 
 from styles.colors import (
@@ -152,7 +151,7 @@ class _TitleBar(QWidget):
 
 class WindowFrame(QWidget):
     """
-    Marco de ventana completo estilo Windows XP.
+    Marco de ventana completo estilo Windows XP con micro-animaciones.
     """
 
     close_requested    = pyqtSignal()
@@ -174,6 +173,7 @@ class WindowFrame(QWidget):
         self._title = title
         self._icon_emoji = icon_emoji
         self._close_emitted = False
+        self._anim: QPropertyAnimation | None = None
 
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.SubWindow)
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
@@ -228,6 +228,31 @@ class WindowFrame(QWidget):
         self._title_bar.set_active(active)
         self.update()
 
+    def animate_open(self, target_rect: QRect):
+        """Micro-animación sutil de aparición al abrir la ventana (~120ms)."""
+        start_rect = QRect(
+            target_rect.x() + 15,
+            target_rect.y() + 15,
+            target_rect.width() - 30,
+            target_rect.height() - 30
+        )
+        self.setGeometry(start_rect)
+        self.setWindowOpacity(0.4)
+
+        self._anim = QPropertyAnimation(self, b"geometry")
+        self._anim.setDuration(120)
+        self._anim.setStartValue(start_rect)
+        self._anim.setEndValue(target_rect)
+        self._anim.setEasingCurve(QEasingCurve.Type.OutQuad)
+
+        self._anim_fade = QPropertyAnimation(self, b"windowOpacity")
+        self._anim_fade.setDuration(120)
+        self._anim_fade.setStartValue(0.4)
+        self._anim_fade.setEndValue(1.0)
+
+        self._anim.start()
+        self._anim_fade.start()
+
     def _request_close(self):
         self._emit_close_requested()
         self.close()
@@ -250,14 +275,27 @@ class WindowFrame(QWidget):
     def _maximize_window(self):
         if self.parent():
             self._normal_geometry = self.geometry()
-            parent_rect = self.parent().rect()
-            self.setGeometry(0, 0, parent_rect.width(), parent_rect.height())
+            target_rect = self.parent().rect()
+
+            self._anim = QPropertyAnimation(self, b"geometry")
+            self._anim.setDuration(120)
+            self._anim.setStartValue(self.geometry())
+            self._anim.setEndValue(target_rect)
+            self._anim.setEasingCurve(QEasingCurve.Type.OutQuad)
+            self._anim.start()
+
             self._is_maximized_custom = True
             self._title_bar.btn_max.setText("2")
 
     def _restore_window(self):
         if self._normal_geometry:
-            self.setGeometry(self._normal_geometry)
+            self._anim = QPropertyAnimation(self, b"geometry")
+            self._anim.setDuration(120)
+            self._anim.setStartValue(self.geometry())
+            self._anim.setEndValue(self._normal_geometry)
+            self._anim.setEasingCurve(QEasingCurve.Type.OutQuad)
+            self._anim.start()
+
         self._is_maximized_custom = False
         self._title_bar.btn_max.setText("1")
 

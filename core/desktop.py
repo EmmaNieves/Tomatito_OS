@@ -217,11 +217,11 @@ class Desktop(QWidget):
         wa = self._work_area
         x = max(0, (wa.width()  - frame.width())  // 2)
         y = max(0, (wa.height() - frame.height()) // 2)
-        # Escalonar ventanas si hay varias abiertas
         offset = len(self._open_apps) * 24
-        frame.move(x + offset, y + offset)
+        target_rect = QRect(x + offset, y + offset, frame.width(), frame.height())
 
         frame.show()
+        frame.animate_open(target_rect)
 
         # Registrar en WindowManager
         self._wm.register(frame)
