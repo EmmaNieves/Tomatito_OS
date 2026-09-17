@@ -187,6 +187,12 @@ def main():
                         font,
                         font_checkpoint,
                     )
+                    try:
+                        flag_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".game_won")
+                        with open(flag_path, "w") as f:
+                            f.write("1")
+                    except Exception:
+                        pass
                     running = False
                 game_won = True
 

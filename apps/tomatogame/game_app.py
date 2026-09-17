@@ -33,7 +33,11 @@ class GameApp(BaseApp):
     def __init__(self, resources: ResourceManager, sounds: SoundManager, parent=None):
         self._process: QProcess | None = None
         self._has_launched: bool = False
+        self._event_manager = None
         super().__init__(resources, sounds, parent)
+
+    def set_event_manager(self, event_manager) -> None:
+        self._event_manager = event_manager
 
     def _build_ui(self) -> None:
         self.setFixedSize(0, 0)
@@ -71,12 +75,23 @@ class GameApp(BaseApp):
 
     def _on_game_finished(self, _exit_code: int, _exit_status) -> None:
         """Cuando el juego se cierra, vuelve a mostrar tomatitOS y cierra la app."""
+        flag_path = os.path.join(GAME_DIR, ".game_won")
+        game_completed = os.path.exists(flag_path)
+        if game_completed:
+            try:
+                os.remove(flag_path)
+            except Exception:
+                pass
+
         desktop_win = self.window()
         if desktop_win:
             desktop_win.show()
             desktop_win.showFullScreen()
             desktop_win.raise_()
             desktop_win.activateWindow()
+
+        if game_completed and self._event_manager:
+            self._event_manager.trigger("GAME_COMPLETED")
 
         frame = self.parentWidget()
         while frame and not hasattr(frame, "close_requested"):

@@ -22,8 +22,10 @@ from core.app_registry import AppRegistry, AppDefinition
 from core.window_manager import WindowManager
 from core.taskbar import Taskbar
 from core.start_menu import StartMenu
+from core.event_manager import EventManager
 from widgets.desktop_icon import DesktopIcon
 from widgets.window_frame import WindowFrame
+from widgets.birthday_celebration import BirthdayCelebrationOverlay
 from styles.colors import DESKTOP_BG
 
 
@@ -85,6 +87,10 @@ class Desktop(QWidget):
         self._icons: list[DesktopIcon] = []
         self._open_apps: dict[str, WindowFrame] = {}  # app_id -> frame
 
+        self._event_manager = EventManager(self)
+        self._birthday_overlay = BirthdayCelebrationOverlay(sounds=self._sounds, parent=self)
+        self._event_manager.event_triggered.connect(self._on_event_triggered)
+
         # Quitar decoración del sistema operativo host
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
 
@@ -94,6 +100,10 @@ class Desktop(QWidget):
         self._populate_icons()
 
         self.showFullScreen()
+
+    def _on_event_triggered(self, event_name: str) -> None:
+        if event_name == "GAME_COMPLETED":
+            self._birthday_overlay.start_sequence()
 
     # ── Construcción UI ───────────────────────────────────────────────────
 
@@ -202,6 +212,8 @@ class Desktop(QWidget):
             resources=self._resources,
             sounds=self._sounds,
         )
+        if hasattr(app_instance, "set_event_manager"):
+            app_instance.set_event_manager(self._event_manager)
 
         # Envolver en WindowFrame
         frame = WindowFrame(
@@ -274,3 +286,5 @@ class Desktop(QWidget):
             margin,
         )
         self._shutdown_btn.lower()
+        if hasattr(self, "_birthday_overlay"):
+            self._birthday_overlay.setGeometry(self.rect())
