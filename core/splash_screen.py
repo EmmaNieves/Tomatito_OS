@@ -200,12 +200,20 @@ class SplashScreen(QWidget):
         painter.setOpacity(self._opacity)
 
         # ── Logo "Tomatito" ─────────────────────────────────────────────
-        # Emoji del tomate
-        emoji_font = QFont("Segoe UI Emoji", 64)
-        painter.setFont(emoji_font)
-        painter.setPen(QColor(255, 255, 255, alpha))
-        painter.drawText(QRect(cx - 60, cy - 140, 120, 100),
-                         Qt.AlignmentFlag.AlignCenter, "🍅")
+        from PyQt6.QtGui import QPixmap
+        import os
+        logo_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets", "icons", "tomatito.png")
+        if os.path.isfile(logo_path):
+            pix = QPixmap(logo_path)
+            if not pix.isNull():
+                scaled_pix = pix.scaled(100, 100, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+                painter.drawPixmap(cx - scaled_pix.width() // 2, cy - 140, scaled_pix)
+        else:
+            emoji_font = QFont("Segoe UI Emoji", 64)
+            painter.setFont(emoji_font)
+            painter.setPen(QColor(255, 255, 255, alpha))
+            painter.drawText(QRect(cx - 60, cy - 140, 120, 100),
+                             Qt.AlignmentFlag.AlignCenter, "🍅")
 
         # Nombre "Tomatito"
         title_font = QFont("Tahoma", 32, QFont.Weight.Light)

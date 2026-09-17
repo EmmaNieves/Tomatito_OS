@@ -27,10 +27,19 @@ class _StartButton(QPushButton):
     """Botón Inicio verde estilo XP."""
 
     def __init__(self, parent=None):
-        super().__init__("🍅  Inicio", parent)
+        super().__init__("  Inicio", parent)
         self.setFixedSize(110, 34)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setFont(QFont("Tahoma", 10, QFont.Weight.Bold))
+
+        import os
+        from PyQt6.QtGui import QIcon
+        from PyQt6.QtCore import QSize
+        icon_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets", "icons", "tomatito.png")
+        if os.path.isfile(icon_path):
+            self.setIcon(QIcon(icon_path))
+            self.setIconSize(QSize(22, 22))
+
         self.setStyleSheet(f"""
             QPushButton {{
                 background: qlineargradient(x1:0, y1:0, x2:0, y2:1,

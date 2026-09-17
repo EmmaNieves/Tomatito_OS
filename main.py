@@ -115,6 +115,12 @@ def main() -> None:
     sounds    = SoundManager(resources)
     registry  = AppRegistry()
 
+    # Asignar icono global de la aplicación (barra de tareas y ventanas)
+    from PyQt6.QtGui import QIcon
+    icon_path = resources.get_icon_path("tomatito")
+    if icon_path:
+        app.setWindowIcon(QIcon(icon_path))
+
     _register_apps(registry)
 
     # Referencia global al desktop (para evitar garbage collection)
