@@ -27,8 +27,8 @@ class _StartButton(QPushButton):
     """Botón Inicio verde estilo XP."""
 
     def __init__(self, parent=None):
-        super().__init__("  Inicio", parent)
-        self.setFixedSize(110, 34)
+        super().__init__("  tomatitOS", parent)
+        self.setFixedSize(130, 34)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setFont(QFont("Tahoma", 10, QFont.Weight.Bold))
 

@@ -176,7 +176,7 @@ class _AlbumListView(QWidget):
         grid.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
 
         if self._albums:
-            COLS = 4
+            COLS = 3
             for i, album in enumerate(self._albums):
                 card = _AlbumCard(album)
                 row, col = divmod(i, COLS)
