@@ -218,12 +218,7 @@ class GalleryApp(BaseApp):
         self._photo_viewer: PhotoViewer | None = None
 
     def _open_album(self, album: dict) -> None:
-        """Abre un álbum o la sección especial de Amigos."""
-        album_id = album.get("id", "").lower()
-        if album_id == "amigos":
-            self._open_friends_grid(album["path"])
-            return
-
+        """Abre la vista de miniaturas del álbum."""
         photos = self.resources.get_photos_in_album(album["path"])
 
         if self._album_view is not None:
