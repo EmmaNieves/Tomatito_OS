@@ -4,24 +4,22 @@ photo_viewer.py — Visor de fotografías a pantalla completa (dentro del sistem
 Características:
 - Muestra la foto ajustada al espacio disponible (sin deformar).
 - Navegación: botones anterior / siguiente + teclado (← →).
+- Botón para volver a la galería/álbum sin tener que cerrar la ventana.
 - Nombre del archivo visible en la barra inferior.
-- Fondo negro con la foto centrada.
 - Se integra dentro de un WindowFrame del sistema de ventanas.
 """
 
+import os
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QSizePolicy
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QSizePolicy, QFrame
 )
-from PyQt6.QtCore import Qt, QSize
+from PyQt6.QtCore import Qt, QSize, pyqtSignal
 from PyQt6.QtGui import QPixmap, QKeyEvent, QImage
 from PIL import Image
-import io
 
 
 def _load_pixmap_with_pillow(path: str) -> QPixmap:
-    """
-    Carga una imagen usando Pillow (soporta WEBP, JPEG, PNG) y la convierte a QPixmap.
-    """
+    """Carga una imagen usando Pillow (soporta WEBP, JPEG, PNG) y la convierte a QPixmap."""
     try:
         img = Image.open(path).convert("RGBA")
         data = img.tobytes("raw", "RGBA")
@@ -61,9 +59,9 @@ class _NavButton(QPushButton):
 
 
 class PhotoViewer(QWidget):
-    """
-    Visor de fotografías. Recibe una lista de rutas y un índice inicial.
-    """
+    """Visor de fotografías con botón de retorno y navegación."""
+
+    back_requested = pyqtSignal()
 
     def __init__(self, photo_paths: list[str], start_index: int = 0, parent=None):
         super().__init__(parent)
@@ -80,6 +78,35 @@ class PhotoViewer(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
+
+        # Barra superior con botón Volver
+        header = QFrame()
+        header.setFixedHeight(36)
+        header.setStyleSheet("background: #111111; border-bottom: 1px solid #333333;")
+        h_layout = QHBoxLayout(header)
+        h_layout.setContentsMargins(8, 4, 8, 4)
+
+        btn_back = QPushButton("← Volver a la galería")
+        btn_back.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_back.setStyleSheet("""
+            QPushButton {
+                background: #2a2a2a;
+                color: #ffffff;
+                border: 1px solid #555555;
+                border-radius: 3px;
+                padding: 3px 12px;
+                font-size: 11px;
+            }
+            QPushButton:hover {
+                background: #3a3a3a;
+                border-color: #777777;
+            }
+        """)
+        btn_back.clicked.connect(self.back_requested.emit)
+        h_layout.addWidget(btn_back)
+        h_layout.addStretch()
+
+        layout.addWidget(header)
 
         # Área principal de imagen
         self._img_area = QWidget()
@@ -128,8 +155,6 @@ class PhotoViewer(QWidget):
 
         layout.addWidget(info_bar)
 
-    # ── Navegación ────────────────────────────────────────────────────────
-
     def _go_prev(self):
         if self._index > 0:
             self._index -= 1
@@ -145,10 +170,10 @@ class PhotoViewer(QWidget):
             self._go_prev()
         elif event.key() == Qt.Key.Key_Right:
             self._go_next()
+        elif event.key() == Qt.Key.Key_Escape:
+            self.back_requested.emit()
         else:
             super().keyPressEvent(event)
-
-    # ── Carga y display de imagen ─────────────────────────────────────────
 
     def _load_current(self):
         if not self._paths:
@@ -156,35 +181,28 @@ class PhotoViewer(QWidget):
             return
 
         path = self._paths[self._index]
-        import os
         fname = os.path.basename(path)
 
-        # Actualizar info
         self._filename_label.setText(fname)
         self._counter_label.setText(f"{self._index + 1} / {len(self._paths)}")
 
-        # Botones de navegación
         self._btn_prev.setEnabled(self._index > 0)
         self._btn_next.setEnabled(self._index < len(self._paths) - 1)
 
-        # Cargar pixmap (con cache)
         if path not in self._cache:
             px = _load_pixmap_with_pillow(path)
             if px.isNull():
-                # Fallback: QPixmap directo (JPG/PNG sin WEBP)
                 px = QPixmap(path)
             self._cache[path] = px
 
         self._display_pixmap(self._cache[path])
 
     def _display_pixmap(self, pixmap: QPixmap):
-        """Escala la imagen para caber en el label sin deformar."""
         if pixmap.isNull():
             self._photo_label.setText("No se pudo cargar la imagen")
             return
         available = self._photo_label.size()
         if available.width() < 10 or available.height() < 10:
-            # Aún no se ha pintado: usar un tamaño razonable por defecto
             available = QSize(600, 400)
         scaled = pixmap.scaled(
             available,
@@ -195,6 +213,5 @@ class PhotoViewer(QWidget):
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
-        # Reescalar la imagen actual al nuevo tamaño
         if self._paths and self._paths[self._index] in self._cache:
             self._display_pixmap(self._cache[self._paths[self._index]])

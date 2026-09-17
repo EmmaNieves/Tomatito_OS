@@ -271,5 +271,14 @@ class GalleryApp(BaseApp):
             self._photo_viewer.deleteLater()
 
         self._photo_viewer = PhotoViewer(paths, index)
+        self._photo_viewer.back_requested.connect(self._return_from_photo_viewer)
         self._stack.addWidget(self._photo_viewer)
         self._stack.setCurrentWidget(self._photo_viewer)
+
+    def _return_from_photo_viewer(self) -> None:
+        if self._album_view is not None:
+            self._stack.setCurrentWidget(self._album_view)
+        elif self._person_detail is not None:
+            self._stack.setCurrentWidget(self._person_detail)
+        else:
+            self._go_to_albums()
