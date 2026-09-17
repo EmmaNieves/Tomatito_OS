@@ -155,23 +155,21 @@ class Taskbar(QWidget):
         btn.set_active(True)
         btn.clicked.connect(lambda: self._on_button_clicked(window))
         self._buttons_layout.addWidget(btn)
-        self._buttons[id(window)] = btn
+        self._buttons[window] = btn
 
     def _on_window_closed(self, window) -> None:
-        key = id(window)
-        if key in self._buttons:
-            btn = self._buttons.pop(key)
+        if window in self._buttons:
+            btn = self._buttons.pop(window)
             self._buttons_layout.removeWidget(btn)
             btn.deleteLater()
 
     def _on_window_focused(self, window) -> None:
-        for key, btn in self._buttons.items():
-            btn.set_active(key == id(window))
+        for win, btn in self._buttons.items():
+            btn.set_active(win is window)
 
     def _on_window_minimized(self, window) -> None:
-        key = id(window)
-        if key in self._buttons:
-            self._buttons[key].set_active(False)
+        if window in self._buttons:
+            self._buttons[window].set_active(False)
 
     def _on_button_clicked(self, window) -> None:
         self._wm.toggle_minimize(window)
