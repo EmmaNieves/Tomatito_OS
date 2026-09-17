@@ -249,20 +249,26 @@ class Desktop(QWidget):
         self._sounds.play_window_open()
 
     def _on_app_closed(self, app_id: str) -> None:
-        self._open_apps.pop(app_id, None)
-        self._sounds.play_window_close()
-        self._check_birthday_condition()
+        try:
+            self._open_apps.pop(app_id, None)
+            self._sounds.play_window_close()
+            self._check_birthday_condition()
+        except Exception:
+            pass
 
     def _check_birthday_condition(self) -> None:
         """
         Verifica si el usuario ha entrado en todas las aplicaciones registradas
         y si actualmente no hay ninguna ventana abierta en el escritorio.
         """
-        all_app_ids = {app_def.app_id for app_def in self._registry.all_apps()}
-        if all_app_ids and self._visited_apps.issuperset(all_app_ids):
-            if len(self._open_apps) == 0:
-                if not self._event_manager.has_occurred("GAME_COMPLETED"):
-                    QTimer.singleShot(400, lambda: self._event_manager.trigger("GAME_COMPLETED"))
+        try:
+            all_app_ids = {app_def.app_id for app_def in self._registry.all()}
+            if all_app_ids and self._visited_apps.issuperset(all_app_ids):
+                if len(self._open_apps) == 0:
+                    if not self._event_manager.has_occurred("GAME_COMPLETED"):
+                        QTimer.singleShot(400, lambda: self._event_manager.trigger("GAME_COMPLETED"))
+        except Exception:
+            pass
 
     # ── Menú Inicio ───────────────────────────────────────────────────────
 
