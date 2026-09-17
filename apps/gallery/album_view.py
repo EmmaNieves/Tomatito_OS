@@ -34,7 +34,7 @@ def _make_thumbnail(path: str, size: int) -> QPixmap:
 
 
 class _Thumbnail(QWidget):
-    """Widget de miniatura individual con efecto hover y nombre."""
+    """Widget de miniatura individual con efecto hover."""
 
     clicked = pyqtSignal(int)  # índice dentro del álbum
 
@@ -42,13 +42,13 @@ class _Thumbnail(QWidget):
         super().__init__(parent)
         self._index = index
         self._hovered = False
-        self.setFixedSize(THUMB_SIZE + 16, THUMB_SIZE + 30)
+        self.setFixedSize(THUMB_SIZE + 8, THUMB_SIZE + 8)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setAttribute(Qt.WidgetAttribute.WA_Hover, True)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(4, 4, 4, 4)
-        layout.setSpacing(4)
+        layout.setSpacing(0)
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         # Imagen
@@ -70,13 +70,6 @@ class _Thumbnail(QWidget):
             self._img_label.setText("?")
 
         layout.addWidget(self._img_label, 0, Qt.AlignmentFlag.AlignCenter)
-
-        # Nombre del archivo
-        name = os.path.splitext(os.path.basename(path))[0]
-        name_label = QLabel(name[:14] + "…" if len(name) > 14 else name)
-        name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        name_label.setStyleSheet("font-size: 10px; color: #222222; background: transparent;")
-        layout.addWidget(name_label, 0, Qt.AlignmentFlag.AlignCenter)
 
     def enterEvent(self, event):
         self._hovered = True
