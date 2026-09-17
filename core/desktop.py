@@ -42,7 +42,7 @@ class _ShutdownButton(QPushButton):
     def __init__(self, parent=None):
         super().__init__("⏻", parent)
         self.setFixedSize(32, 32)
-        self.setToolTip("Cerrar Tomatito")
+        self.setToolTip("Cerrar tomatitOS")
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setFont(QFont("Segoe UI Symbol", 14))
         self.setStyleSheet("""

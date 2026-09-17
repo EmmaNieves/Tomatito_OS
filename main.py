@@ -100,8 +100,8 @@ def main() -> None:
     )
 
     app = QApplication(sys.argv)
-    app.setApplicationName("Tomatito")
-    app.setApplicationDisplayName("Tomatito")
+    app.setApplicationName("tomatitOS")
+    app.setApplicationDisplayName("tomatitOS")
 
     # Fuente por defecto (Tahoma es emblemática de XP)
     default_font = QFont("Tahoma", 9)

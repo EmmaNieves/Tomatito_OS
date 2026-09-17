@@ -52,7 +52,7 @@ class _MenuHeader(QWidget):
 
         layout.addWidget(icon_lbl)
 
-        name = QLabel("Tomatito")
+        name = QLabel("tomatitOS")
         name.setStyleSheet(
             "color: white; font-size: 14px; font-weight: bold; font-style: italic; background: transparent;"
         )

@@ -222,7 +222,7 @@ class SplashScreen(QWidget):
         # Sombra del texto
         painter.setPen(QColor(0, 0, 0, alpha // 2))
         painter.drawText(QRect(cx - 202, cy - 42, 404, 60),
-                         Qt.AlignmentFlag.AlignCenter, "Tomatito")
+                         Qt.AlignmentFlag.AlignCenter, "tomatitOS")
 
         # Texto principal con degradado
         grad = QLinearGradient(cx - 200, cy - 40, cx - 200, cy + 20)
