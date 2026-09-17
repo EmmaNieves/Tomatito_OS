@@ -178,8 +178,8 @@ class SplashScreen(QWidget):
             if self._elapsed >= self.FADE_OUT_MS:
                 self._anim_timer.stop()
                 self._progress.stop()
-                self.close()
                 self.finished.emit()
+                self.close()
                 return
 
         self.update()

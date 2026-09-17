@@ -18,13 +18,22 @@ from PyQt6.QtGui import QPixmap, QKeyEvent, QImage
 from PIL import Image
 
 
+import io
+
 def _load_pixmap_with_pillow(path: str) -> QPixmap:
-    """Carga una imagen usando Pillow (soporta WEBP, JPEG, PNG) y la convierte a QPixmap."""
+    """Carga una imagen de forma 100% segura (soporta WEBP, JPEG, PNG)."""
+    if not path or not os.path.exists(path):
+        return QPixmap()
     try:
-        img = Image.open(path).convert("RGBA")
-        data = img.tobytes("raw", "RGBA")
-        qimg = QImage(data, img.width, img.height, QImage.Format.Format_RGBA8888)
-        return QPixmap.fromImage(qimg)
+        pix = QPixmap(path)
+        if not pix.isNull():
+            return pix
+        img = Image.open(path)
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        pix = QPixmap()
+        pix.loadFromData(buf.getvalue())
+        return pix
     except Exception:
         return QPixmap()
 

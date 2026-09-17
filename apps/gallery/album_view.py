@@ -19,16 +19,24 @@ from PIL import Image
 THUMB_SIZE = 120  # px
 
 
+import io
+
 def _make_thumbnail(path: str, size: int) -> QPixmap:
-    """Genera una miniatura cuadrada usando Pillow (soporta WEBP)."""
+    """Genera una miniatura de forma 100% segura sin punteros corruptos."""
+    if not path or not os.path.exists(path):
+        return QPixmap()
     try:
+        pix = QPixmap(path)
+        if not pix.isNull():
+            return pix.scaled(size, size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+        
         img = Image.open(path)
         img.thumbnail((size, size), Image.LANCZOS)
-        # Convertir a RGBA para QImage
-        img = img.convert("RGBA")
-        data = img.tobytes("raw", "RGBA")
-        qimg = QImage(data, img.width, img.height, QImage.Format.Format_RGBA8888)
-        return QPixmap.fromImage(qimg)
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        pix = QPixmap()
+        pix.loadFromData(buf.getvalue())
+        return pix
     except Exception:
         return QPixmap()
 

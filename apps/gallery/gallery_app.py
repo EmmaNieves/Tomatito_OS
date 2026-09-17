@@ -44,18 +44,30 @@ class _AlbumCard(QWidget):
         icon_area.setFixedSize(80, 70)
 
         if album.get("cover"):
-            from PyQt6.QtGui import QPixmap, QImage
-            from PIL import Image
+            from PyQt6.QtGui import QPixmap
+            import io
             try:
-                img = Image.open(album["cover"]).convert("RGBA")
-                img.thumbnail((72, 62), Image.LANCZOS)
-                data = img.tobytes("raw", "RGBA")
-                qimg = QImage(data, img.width, img.height, QImage.Format.Format_RGBA8888)
-                px = QPixmap.fromImage(qimg)
-                icon_area.setPixmap(px)
-                icon_area.setStyleSheet(
-                    "border: 2px solid #CCCCCC; background: #FFFFFF; border-radius: 2px;"
-                )
+                cover_path = album["cover"]
+                px = QPixmap(cover_path)
+                if px.isNull():
+                    from PIL import Image
+                    img = Image.open(cover_path)
+                    img.thumbnail((72, 62), Image.LANCZOS)
+                    buf = io.BytesIO()
+                    img.save(buf, format="PNG")
+                    px = QPixmap()
+                    px.loadFromData(buf.getvalue())
+                else:
+                    px = px.scaled(72, 62, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+                
+                if not px.isNull():
+                    icon_area.setPixmap(px)
+                    icon_area.setStyleSheet(
+                        "border: 2px solid #CCCCCC; background: #FFFFFF; border-radius: 2px;"
+                    )
+                else:
+                    icon_area.setText("👥" if album.get("id", "").lower() == "amigos" else "📁")
+                    icon_area.setStyleSheet("font-size: 48px; background: transparent;")
             except Exception:
                 icon_area.setText("👥" if album.get("id", "").lower() == "amigos" else "📁")
                 icon_area.setStyleSheet("font-size: 48px; background: transparent;")

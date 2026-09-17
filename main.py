@@ -123,14 +123,16 @@ def main() -> None:
 
     _register_apps(registry)
 
-    # 1. Crear el Desktop (permanece oculto en memoria durante la animación)
-    desktop = Desktop(resources, sounds, registry)
-
-    # 2. Pantalla de inicio estilo Windows XP (pantalla negra + animación)
+    # 1. Crear la pantalla de inicio negra primero
     splash = SplashScreen(sounds=sounds)
 
+    # 2. Crear e iniciar el escritorio de tomatitOS en segundo plano detrás del splash
+    desktop = Desktop(resources, sounds, registry)
+    desktop.showFullScreen()
+    splash.raise_()
+    splash.activateWindow()
+
     def _on_splash_finished():
-        desktop.showFullScreen()
         desktop.raise_()
         desktop.activateWindow()
         splash.deleteLater()
