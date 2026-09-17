@@ -1,0 +1,16 @@
+# Entornos virtuales y temporales
+venv/
+dist/
+dist_usb/
+build/
+*.zip
+*.spec.bak
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# IDEs
+.vscode/
+.idea/
