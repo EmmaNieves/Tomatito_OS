@@ -13,7 +13,7 @@ Es el widget raíz que ocupa toda la pantalla. Contiene:
 
 import os
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QPushButton, QApplication
-from PyQt6.QtCore import Qt, QPoint
+from PyQt6.QtCore import Qt, QPoint, QRect
 from PyQt6.QtGui import QPainter, QPixmap, QColor, QLinearGradient, QFont
 
 from core.resource_manager import ResourceManager
@@ -218,10 +218,9 @@ class Desktop(QWidget):
         x = max(0, (wa.width()  - frame.width())  // 2)
         y = max(0, (wa.height() - frame.height()) // 2)
         offset = len(self._open_apps) * 24
-        target_rect = QRect(x + offset, y + offset, frame.width(), frame.height())
+        frame.move(x + offset, y + offset)
 
         frame.show()
-        frame.animate_open(target_rect)
 
         # Registrar en WindowManager
         self._wm.register(frame)
