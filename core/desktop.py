@@ -117,10 +117,10 @@ class Desktop(QWidget):
         self._start_menu = StartMenu(self._registry, self._resources, self)
         self._start_menu.app_launched.connect(self._launch_app)
 
-        # Botón de cierre (se coloca en resizeEvent para posicionarlo siempre en la esquina)
-        self._shutdown_btn = _ShutdownButton(self)
+        # Botón de cierre (en el escritorio, detrás de las ventanas)
+        self._shutdown_btn = _ShutdownButton(self._work_area)
         self._shutdown_btn.clicked.connect(self._confirm_shutdown)
-        self._shutdown_btn.raise_()
+        self._shutdown_btn.lower()
 
     # ── Fondo de pantalla ─────────────────────────────────────────────────
 
@@ -268,10 +268,10 @@ class Desktop(QWidget):
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
-        # Reposicionar el botón de cierre en la esquina superior derecha
+        # Reposicionar el botón de cierre en la esquina superior derecha del escritorio
         margin = 8
         self._shutdown_btn.move(
-            self.width() - self._shutdown_btn.width() - margin,
+            self._work_area.width() - self._shutdown_btn.width() - margin,
             margin,
         )
-        self._shutdown_btn.raise_()
+        self._shutdown_btn.lower()

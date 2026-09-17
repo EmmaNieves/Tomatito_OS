@@ -1,7 +1,7 @@
 """
 game_app.py — Integración de TOMÁte Salvajes en tomatitOS.
 
-Lanza el juego inmediatamente en su propio proceso.
+Lanza el juego en su propio proceso exactamente una vez.
 Cierra y restaura la pantalla de tomatitOS al finalizar.
 """
 
@@ -32,6 +32,7 @@ class GameApp(BaseApp):
 
     def __init__(self, resources: ResourceManager, sounds: SoundManager, parent=None):
         self._process: QProcess | None = None
+        self._has_launched: bool = False
         super().__init__(resources, sounds, parent)
 
     def _build_ui(self) -> None:
@@ -40,7 +41,9 @@ class GameApp(BaseApp):
 
     def showEvent(self, event) -> None:
         super().showEvent(event)
-        QTimer.singleShot(0, self._launch_and_hide)
+        if not self._has_launched:
+            self._has_launched = True
+            QTimer.singleShot(0, self._launch_and_hide)
 
     def _launch_and_hide(self) -> None:
         win = self.window()
