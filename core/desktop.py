@@ -265,7 +265,14 @@ class Desktop(QWidget):
         self._sounds.play_window_close()
         QApplication.quit()
 
-    # ── Clic en el escritorio ─────────────────────────────────────────────
+    # ── Clic y Teclas en el escritorio ──────────────────────────────────
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key.Key_F12 or (
+            event.key() == Qt.Key.Key_B and (event.modifiers() & Qt.KeyboardModifier.ControlModifier)
+        ):
+            self._event_manager.trigger("GAME_COMPLETED")
+        super().keyPressEvent(event)
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:

@@ -28,6 +28,17 @@ def main():
     pygame.init()
     screen = pygame.display.set_mode((settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT))
     pygame.display.set_caption(settings.TITLE)
+
+    if sys.platform == "win32":
+        try:
+            import ctypes
+            hwnd = pygame.display.get_wm_info().get("window")
+            if hwnd:
+                ctypes.windll.user32.ShowWindow(hwnd, 9)
+                ctypes.windll.user32.SetForegroundWindow(hwnd)
+        except Exception:
+            pass
+
     clock = pygame.time.Clock()
 
     # Lienzo logico donde se dibuja todo el juego. Se escala a la
@@ -83,6 +94,17 @@ def main():
                 running = False
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 running = False
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_F9:
+                audio.play_sfx(settings.SFX_FILES["final"], assets)
+                run_ending_scene(screen, clock, assets, audio, player, font, font_checkpoint)
+                try:
+                    flag_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".game_won")
+                    with open(flag_path, "w") as f:
+                        f.write("1")
+                except Exception:
+                    pass
+                running = False
+                game_won = True
             if event.type == pygame.KEYDOWN and event.key == pygame.K_t:
                 for checkpoint in level["checkpoints"]:
                     if checkpoint.can_interact(player):

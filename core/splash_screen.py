@@ -107,7 +107,12 @@ class SplashScreen(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
         self._build_ui()
-        self.showFullScreen()
+        if parent:
+            self.setGeometry(parent.rect())
+        else:
+            self.showFullScreen()
+        self.show()
+        self.raise_()
         self._start_animation()
 
     # ── UI ────────────────────────────────────────────────────────────────

@@ -52,7 +52,7 @@ class GameApp(BaseApp):
     def _launch_and_hide(self) -> None:
         win = self.window()
         if win:
-            win.hide()
+            win.showMinimized()
         self._launch_game()
 
     def _launch_game(self) -> None:

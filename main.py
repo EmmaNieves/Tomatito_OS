@@ -123,17 +123,12 @@ def main() -> None:
 
     _register_apps(registry)
 
-    # Referencia global al desktop (para evitar garbage collection)
-    desktop: Desktop | None = None
+    # Crear el Desktop inmediatamente para evitar parpadeos o salir de la app
+    desktop = Desktop(resources, sounds, registry)
 
-    def _on_splash_finished():
-        """Callback: el splash terminó, mostrar el escritorio."""
-        nonlocal desktop
-        desktop = Desktop(resources, sounds, registry)
-
-    # Mostrar splash screen (reproduce startup.wav + animación)
-    splash = SplashScreen(sounds=sounds)
-    splash.finished.connect(_on_splash_finished)
+    # Mostrar splash screen como overlay sobre el escritorio
+    splash = SplashScreen(sounds=sounds, parent=desktop)
+    splash.finished.connect(splash.deleteLater)
 
     sys.exit(app.exec())
 
