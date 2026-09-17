@@ -1,27 +1,25 @@
 """
-desktop_icon.py — Icono de escritorio estilo Windows XP.
+desktop_icon.py — Icono de escritorio con estilo auténtico de Windows XP.
 
 Características:
-- Muestra un emoji (o imagen desde ResourceManager) con etiqueta de texto.
-- Doble clic lanza la callback asociada.
-- Estados visual: normal, hover, seleccionado.
-- Clic simple selecciona. Clic en otro lugar deselecciona (gestionado por Desktop).
+- Sombra de texto desplegada sobre el fondo del escritorio.
+- Recuadro azul de selección estilo Windows XP (#0B61A4).
+- Doble clic abre la aplicación con sonido.
+- Clic simple selecciona con respuesta visual clara.
 """
 
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer
-from PyQt6.QtGui import QPainter, QColor, QFont, QPixmap
+from PyQt6.QtGui import QPainter, QColor, QFont, QPixmap, QPen
 
 from styles.colors import ICON_SELECTED_BG, ICON_LABEL_COLOR
 
 
 class DesktopIcon(QWidget):
-    """
-    Icono del escritorio con doble clic para lanzar una aplicación.
-    """
+    """Icono del escritorio con comportamiento e interfaz estilo Windows XP."""
 
-    activated   = pyqtSignal()   # doble clic
-    selected    = pyqtSignal(object)  # clic simple (self)
+    activated = pyqtSignal()      # doble clic
+    selected  = pyqtSignal(object) # clic simple
 
     def __init__(
         self,
@@ -35,11 +33,11 @@ class DesktopIcon(QWidget):
         self._hovered  = False
         self._click_timer = QTimer(self)
         self._click_timer.setSingleShot(True)
-        self._click_timer.setInterval(300)
+        self._click_timer.setInterval(280)
         self._click_timer.timeout.connect(self._on_single_click)
         self._pending_single = False
 
-        self.setFixedSize(80, 88)
+        self.setFixedSize(86, 94)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setAttribute(Qt.WidgetAttribute.WA_Hover, True)
 
@@ -53,37 +51,45 @@ class DesktopIcon(QWidget):
         self._img_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._img_label.setFixedSize(48, 48)
 
-        if pixmap:
+        if pixmap and not pixmap.isNull():
             self._img_label.setPixmap(
                 pixmap.scaled(48, 48, Qt.AspectRatioMode.KeepAspectRatio,
                               Qt.TransformationMode.SmoothTransformation)
             )
         else:
             self._img_label.setText(emoji)
-            self._img_label.setStyleSheet("font-size: 32px; background: transparent;")
+            self._img_label.setStyleSheet("font-size: 34px; background: transparent;")
 
         layout.addWidget(self._img_label, 0, Qt.AlignmentFlag.AlignHCenter)
 
         # Etiqueta de texto
+        self._label_text = label
         self._text_label = QLabel(label)
         self._text_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._text_label.setWordWrap(True)
-        self._text_label.setStyleSheet(
-            f"color: {ICON_LABEL_COLOR}; font-size: 11px; background: transparent;"
-        )
-        self._text_label.setFixedWidth(72)
+        self._text_label.setFont(QFont("Tahoma", 9, QFont.Weight.Bold))
+        self._text_label.setFixedWidth(78)
+        self._update_label_style()
         layout.addWidget(self._text_label, 0, Qt.AlignmentFlag.AlignHCenter)
 
-    # ── Selección ─────────────────────────────────────────────────────────
+    def _update_label_style(self):
+        if self._selected:
+            self._text_label.setStyleSheet(
+                "color: #ffffff; background-color: #0b61a4; border-radius: 2px; padding: 1px 2px;"
+            )
+        else:
+            # Texto blanco con sombra drop-shadow sutil estilo XP
+            self._text_label.setStyleSheet(
+                "color: #ffffff; background: transparent; font-weight: bold;"
+            )
 
     def set_selected(self, selected: bool) -> None:
         self._selected = selected
+        self._update_label_style()
         self.update()
 
     def is_selected(self) -> bool:
         return self._selected
-
-    # ── Eventos ───────────────────────────────────────────────────────────
 
     def enterEvent(self, event):
         self._hovered = True
@@ -116,17 +122,17 @@ class DesktopIcon(QWidget):
             self.set_selected(True)
             self.selected.emit(self)
 
-    # ── Pintura ───────────────────────────────────────────────────────────
-
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
         if self._selected:
-            painter.fillRect(self.rect(), QColor(ICON_SELECTED_BG + "99"))
-            painter.setPen(QColor(ICON_SELECTED_BG))
+            painter.fillRect(self.rect(), QColor(11, 97, 164, 70))
+            painter.setPen(QPen(QColor(11, 97, 164, 200), 1, Qt.PenStyle.DotLine))
             painter.drawRect(1, 1, self.width() - 2, self.height() - 2)
         elif self._hovered:
-            painter.fillRect(self.rect(), QColor(ICON_SELECTED_BG + "55"))
+            painter.fillRect(self.rect(), QColor(255, 255, 255, 40))
+            painter.setPen(QPen(QColor(255, 255, 255, 100), 1, Qt.PenStyle.SolidLine))
+            painter.drawRect(1, 1, self.width() - 2, self.height() - 2)
 
         painter.end()

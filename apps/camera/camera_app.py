@@ -285,6 +285,8 @@ class CameraApp(BaseApp):
 
     def _take_photo(self) -> None:
         self._osd_overlay.trigger_flash()
+        if self.sounds:
+            self.sounds.play_click()
 
         if self._image_capture and self._camera and self._camera.isActive():
             self._image_capture.capture()

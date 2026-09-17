@@ -373,6 +373,8 @@ class MusicApp(BaseApp):
         self._playlist_widget.setCurrentRow(index)
 
     def _play_pause(self) -> None:
+        if self.sounds:
+            self.sounds.play_click()
         if not self._player:
             return
         if self._player.playbackState() == QMediaPlayer.PlaybackState.PlayingState:
@@ -385,6 +387,8 @@ class MusicApp(BaseApp):
             self._btn_play.setText("⏸")
 
     def _next(self) -> None:
+        if self.sounds:
+            self.sounds.play_click()
         if not SONGS:
             return
         next_idx = (self._current_index + 1) % len(SONGS)
@@ -393,6 +397,8 @@ class MusicApp(BaseApp):
         self._btn_play.setText("⏸")
 
     def _prev(self) -> None:
+        if self.sounds:
+            self.sounds.play_click()
         if not SONGS:
             return
         if self._player and self._player.position() > 3000:
