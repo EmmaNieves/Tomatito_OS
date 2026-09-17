@@ -114,7 +114,7 @@ class Desktop(QWidget):
         main_layout.addWidget(self._taskbar)
 
         # Menú Inicio (popup, padre = este widget)
-        self._start_menu = StartMenu(self._registry, self)
+        self._start_menu = StartMenu(self._registry, self._resources, self)
         self._start_menu.app_launched.connect(self._launch_app)
 
         # Botón de cierre (se coloca en resizeEvent para posicionarlo siempre en la esquina)
