@@ -1,15 +1,15 @@
 """
 game_app.py — Integración de TOMÁte Salvajes en tomatitOS.
 
-Lanza el juego inmediatamente y fuerza la ventana de Pygame
-al frente para evitar que se abra detrás de otras aplicaciones.
+Lanza el juego inmediatamente en su propio proceso.
+Cierra y restaura la pantalla de tomatitOS al finalizar.
 """
 
 import sys
 import os
 
 from PyQt6.QtWidgets import QVBoxLayout, QLabel
-from PyQt6.QtCore import Qt, QProcess, QTimer
+from PyQt6.QtCore import Qt, QProcess, QTimer, QProcessEnvironment
 
 from apps.base_app import BaseApp
 from core.resource_manager import ResourceManager
@@ -56,19 +56,12 @@ class GameApp(BaseApp):
         self._process.setWorkingDirectory(GAME_DIR)
         self._process.finished.connect(self._on_game_finished)
 
-        # Comando que lanza el juego e inicia un hilo para traer la ventana al frente
+        env = QProcessEnvironment.systemEnvironment()
+        env.insert("SDL_VIDEO_WINDOW_POS", "center")
+        self._process.setProcessEnvironment(env)
+
         launch_cmd = (
-            f"import sys, os, time, ctypes, threading; "
-            f"sys.path.insert(0, r'{GAME_DIR}'); "
-            f"def _focus(): "
-            f"  time.sleep(0.4); "
-            f"  try: "
-            f"    u = ctypes.windll.user32; "
-            f"    h = u.GetForegroundWindow(); "
-            f"    u.ShowWindow(h, 5); "
-            f"    u.SetForegroundWindow(h); "
-            f"  except: pass; "
-            f"threading.Thread(target=_focus, daemon=True).start(); "
+            f"import sys; sys.path.insert(0, r'{GAME_DIR}'); "
             f"import runpy; runpy.run_path(r'{GAME_MAIN}', run_name='__main__')"
         )
         self._process.start(sys.executable, ["-c", launch_cmd])
