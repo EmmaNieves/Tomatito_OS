@@ -1,11 +1,9 @@
 """
-gallery_app.py — Aplicación principal de la Galería de fotografías.
+gallery_app.py — Aplicación principal de la Galería de fotografías (Mis imágenes).
 
 Flujo de navegación:
-  Vista de álbumes → (doble clic) → Vista de fotos del álbum → (clic) → Visor de foto
-
-Gestiona el stack de vistas mediante QStackedWidget.
-Carga álbumes dinámicamente desde ResourceManager sin lista hardcodeada.
+  Vista de álbumes → (si Amigos) → Sección Amigos (6 tarjetas) → Perfil de Persona → Visor de fotos
+                 → (otros álbumes) → Vista de fotos del álbum → Visor de fotos
 """
 
 from PyQt6.QtWidgets import (
@@ -13,18 +11,19 @@ from PyQt6.QtWidgets import (
     QGridLayout, QPushButton, QStackedWidget, QFrame
 )
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QColor, QPainter, QLinearGradient
+from PyQt6.QtGui import QColor, QPainter
 
 from apps.base_app import BaseApp
 from apps.gallery.album_view import AlbumView
 from apps.gallery.photo_viewer import PhotoViewer
+from apps.gallery.friends_view import FriendsGridView, PersonDetailView
 from core.resource_manager import ResourceManager
 from core.sound_manager import SoundManager
-from styles.colors import GALLERY_BG, GALLERY_SIDEBAR, GALLERY_ALBUM_HOVER
+from styles.colors import GALLERY_BG, GALLERY_SIDEBAR
 
 
 class _AlbumCard(QWidget):
-    """Tarjeta de álbum en la vista de álbumes (carpeta con nombre y portada)."""
+    """Tarjeta de álbum en la vista de álbumes."""
 
     double_clicked = pyqtSignal()
 
@@ -40,7 +39,6 @@ class _AlbumCard(QWidget):
         layout.setSpacing(6)
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        # Icono de carpeta con miniatura (o emoji si no hay cover)
         icon_area = QLabel()
         icon_area.setAlignment(Qt.AlignmentFlag.AlignCenter)
         icon_area.setFixedSize(80, 70)
@@ -59,15 +57,14 @@ class _AlbumCard(QWidget):
                     "border: 2px solid #CCCCCC; background: #FFFFFF; border-radius: 2px;"
                 )
             except Exception:
-                icon_area.setText("📁")
+                icon_area.setText("👥" if album.get("id", "").lower() == "amigos" else "📁")
                 icon_area.setStyleSheet("font-size: 48px; background: transparent;")
         else:
-            icon_area.setText("📁")
+            icon_area.setText("👥" if album.get("id", "").lower() == "amigos" else "📁")
             icon_area.setStyleSheet("font-size: 48px; background: transparent;")
 
         layout.addWidget(icon_area, 0, Qt.AlignmentFlag.AlignCenter)
 
-        # Nombre
         name_lbl = QLabel(album["name"])
         name_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         name_lbl.setStyleSheet(
@@ -102,7 +99,7 @@ class _AlbumCard(QWidget):
 class _AlbumListView(QWidget):
     """Vista inicial: lista de álbumes disponibles."""
 
-    album_opened = pyqtSignal(dict)  # dict del álbum seleccionado
+    album_opened = pyqtSignal(dict)
 
     def __init__(self, albums: list[dict], parent=None):
         super().__init__(parent)
@@ -115,7 +112,6 @@ class _AlbumListView(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-        # Barra de dirección (estilo explorador XP)
         addr_bar = QWidget()
         addr_bar.setFixedHeight(36)
         addr_bar.setStyleSheet("background: #F0EFE7; border-bottom: 1px solid #CCCCCC;")
@@ -133,14 +129,12 @@ class _AlbumListView(QWidget):
 
         layout.addWidget(addr_bar)
 
-        # Área principal dividida: panel lateral + contenido
         content = QWidget()
         content.setStyleSheet(f"background: {GALLERY_BG};")
         content_layout = QHBoxLayout(content)
         content_layout.setContentsMargins(0, 0, 0, 0)
         content_layout.setSpacing(0)
 
-        # Panel lateral
         sidebar = QWidget()
         sidebar.setFixedWidth(160)
         sidebar.setStyleSheet(f"background: {GALLERY_SIDEBAR}; border-right: 1px solid #CCCCCC;")
@@ -165,7 +159,6 @@ class _AlbumListView(QWidget):
 
         content_layout.addWidget(sidebar)
 
-        # Cuadrícula de álbumes
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setStyleSheet("QScrollArea { border: none; background: #FFFFFF; }")
@@ -188,10 +181,7 @@ class _AlbumListView(QWidget):
                     lambda a=album_data: self.album_opened.emit(a)
                 )
         else:
-            empty = QLabel(
-                "No se encontraron álbumes.\n\n"
-                "Crea carpetas dentro de:\nassets/photos/"
-            )
+            empty = QLabel("No se encontraron álbumes.\n\nCrea carpetas en assets/photos/")
             empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
             empty.setStyleSheet("color: #888888; font-size: 12px;")
             grid.addWidget(empty, 0, 0)
@@ -201,16 +191,8 @@ class _AlbumListView(QWidget):
         layout.addWidget(content, 1)
 
 
-# ── Aplicación principal ──────────────────────────────────────────────────
-
 class GalleryApp(BaseApp):
-    """
-    Galería de fotografías. Primera aplicación de Tomatito.
-    Navega entre:
-      0 → Lista de álbumes
-      1 → Vista de fotos del álbum seleccionado
-      2 → Visor de fotografía individual
-    """
+    """Galería de fotografías (Mis imágenes)."""
 
     def _build_ui(self):
         layout = QVBoxLayout(self)
@@ -220,22 +202,25 @@ class GalleryApp(BaseApp):
         self._stack = QStackedWidget()
         layout.addWidget(self._stack)
 
-        # Vista 0: lista de álbumes
         albums = self.resources.get_photo_albums()
         self._album_list = _AlbumListView(albums)
         self._album_list.album_opened.connect(self._open_album)
         self._stack.addWidget(self._album_list)
 
         self._album_view: AlbumView | None = None
+        self._friends_grid: FriendsGridView | None = None
+        self._person_detail: PersonDetailView | None = None
         self._photo_viewer: PhotoViewer | None = None
 
-    # ── Navegación entre vistas ───────────────────────────────────────────
-
     def _open_album(self, album: dict) -> None:
-        """Cambia a la vista de miniaturas del álbum."""
+        """Abre un álbum o la sección especial de Amigos."""
+        album_id = album.get("id", "").lower()
+        if album_id == "amigos":
+            self._open_friends_grid(album["path"])
+            return
+
         photos = self.resources.get_photos_in_album(album["path"])
 
-        # Crear (o reemplazar) la vista del álbum
         if self._album_view is not None:
             self._stack.removeWidget(self._album_view)
             self._album_view.deleteLater()
@@ -246,11 +231,41 @@ class GalleryApp(BaseApp):
         self._stack.addWidget(self._album_view)
         self._stack.setCurrentWidget(self._album_view)
 
+    def _open_friends_grid(self, amigos_path: str) -> None:
+        """Abre la pantalla de tarjetas de Amigos."""
+        if self._friends_grid is not None:
+            self._stack.removeWidget(self._friends_grid)
+            self._friends_grid.deleteLater()
+
+        self._friends_grid = FriendsGridView(amigos_path)
+        self._friends_grid.back_requested.connect(self._go_to_albums)
+        self._friends_grid.person_selected.connect(self._open_person_detail)
+        self._stack.addWidget(self._friends_grid)
+        self._stack.setCurrentWidget(self._friends_grid)
+
+    def _open_person_detail(self, person_data: dict) -> None:
+        """Abre la pantalla de perfil individual de una persona."""
+        if self._person_detail is not None:
+            self._stack.removeWidget(self._person_detail)
+            self._person_detail.deleteLater()
+
+        self._person_detail = PersonDetailView(person_data)
+        self._person_detail.back_requested.connect(self._return_to_friends_grid)
+        self._person_detail.photo_selected.connect(self._open_photo_viewer)
+        self._stack.addWidget(self._person_detail)
+        self._stack.setCurrentWidget(self._person_detail)
+
+    def _return_to_friends_grid(self) -> None:
+        if self._friends_grid is not None:
+            self._stack.setCurrentWidget(self._friends_grid)
+        else:
+            self._go_to_albums()
+
     def _go_to_albums(self) -> None:
         self._stack.setCurrentWidget(self._album_list)
 
     def _open_photo_viewer(self, paths: list, index: int) -> None:
-        """Abre el visor de foto para la imagen seleccionada."""
+        """Abre el visor de fotografía."""
         if self._photo_viewer is not None:
             self._stack.removeWidget(self._photo_viewer)
             self._photo_viewer.deleteLater()

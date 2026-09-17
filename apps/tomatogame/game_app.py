@@ -65,7 +65,17 @@ class GameApp(BaseApp):
         self._process.start(sys.executable, ["-c", launch_cmd])
 
     def _on_game_finished(self, _exit_code: int, _exit_status) -> None:
-        """Cuando el juego se cierra, cierra la ventana del SO."""
-        win = self.window()
-        if win:
-            win.close()
+        """Cuando el juego se cierra, vuelve a mostrar el SO y cierra la app."""
+        desktop_win = self.window()
+        if desktop_win:
+            desktop_win.show()
+            desktop_win.showFullScreen()
+            desktop_win.raise_()
+            desktop_win.activateWindow()
+
+        # Cerrar el marco de ventana de la app del juego
+        frame = self.parentWidget()
+        while frame and not hasattr(frame, "close_requested"):
+            frame = frame.parentWidget()
+        if frame:
+            frame.close()
