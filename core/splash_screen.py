@@ -194,11 +194,10 @@ class SplashScreen(QWidget):
         cx = self.width()  // 2
         cy = self.height() // 2
 
-        # Fondo negro con opacidad animada
-        bg = QColor(0, 0, 0, alpha)
-        painter.fillRect(self.rect(), bg)
+        # Fondo negro sólido desde el primer fotograma para evitar transparencias con el sistema host
+        painter.fillRect(self.rect(), QColor(0, 0, 0))
 
-        if alpha < 10:
+        if alpha < 5:
             painter.end()
             return
 

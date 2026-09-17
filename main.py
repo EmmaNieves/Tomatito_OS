@@ -123,12 +123,19 @@ def main() -> None:
 
     _register_apps(registry)
 
-    # Crear el Desktop inmediatamente para evitar parpadeos o salir de la app
+    # 1. Crear el Desktop (permanece oculto en memoria durante la animación)
     desktop = Desktop(resources, sounds, registry)
 
-    # Mostrar splash screen como overlay sobre el escritorio
-    splash = SplashScreen(sounds=sounds, parent=desktop)
-    splash.finished.connect(splash.deleteLater)
+    # 2. Pantalla de inicio estilo Windows XP (pantalla negra + animación)
+    splash = SplashScreen(sounds=sounds)
+
+    def _on_splash_finished():
+        desktop.showFullScreen()
+        desktop.raise_()
+        desktop.activateWindow()
+        splash.deleteLater()
+
+    splash.finished.connect(_on_splash_finished)
 
     sys.exit(app.exec())
 

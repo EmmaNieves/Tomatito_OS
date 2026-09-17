@@ -13,7 +13,7 @@ Es el widget raíz que ocupa toda la pantalla. Contiene:
 
 import os
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QPushButton, QApplication
-from PyQt6.QtCore import Qt, QPoint, QRect
+from PyQt6.QtCore import Qt, QPoint, QRect, QTimer
 from PyQt6.QtGui import QPainter, QPixmap, QColor, QLinearGradient, QFont
 
 from core.resource_manager import ResourceManager
@@ -86,6 +86,7 @@ class Desktop(QWidget):
         self._wallpaper: QPixmap | None = None
         self._icons: list[DesktopIcon] = []
         self._open_apps: dict[str, WindowFrame] = {}  # app_id -> frame
+        self._visited_apps: set[str] = set()           # Apps abiertas durante esta sesión
 
         self._event_manager = EventManager(self)
         self._birthday_overlay = BirthdayCelebrationOverlay(sounds=self._sounds, parent=self)
@@ -98,8 +99,6 @@ class Desktop(QWidget):
         self._build_ui()
         self._load_wallpaper()
         self._populate_icons()
-
-        self.showFullScreen()
 
     def _on_event_triggered(self, event_name: str) -> None:
         if event_name == "GAME_COMPLETED":
@@ -203,6 +202,9 @@ class Desktop(QWidget):
             self._wm.restore(frame)
             return
 
+        # Registrar que el usuario ha visitado esta app
+        self._visited_apps.add(app_id)
+
         app_def = self._registry.get(app_id)
         if app_def is None:
             return
@@ -249,6 +251,18 @@ class Desktop(QWidget):
     def _on_app_closed(self, app_id: str) -> None:
         self._open_apps.pop(app_id, None)
         self._sounds.play_window_close()
+        self._check_birthday_condition()
+
+    def _check_birthday_condition(self) -> None:
+        """
+        Verifica si el usuario ha entrado en todas las aplicaciones registradas
+        y si actualmente no hay ninguna ventana abierta en el escritorio.
+        """
+        all_app_ids = {app_def.app_id for app_def in self._registry.all_apps()}
+        if all_app_ids and self._visited_apps.issuperset(all_app_ids):
+            if len(self._open_apps) == 0:
+                if not self._event_manager.has_occurred("GAME_COMPLETED"):
+                    QTimer.singleShot(400, lambda: self._event_manager.trigger("GAME_COMPLETED"))
 
     # ── Menú Inicio ───────────────────────────────────────────────────────
 

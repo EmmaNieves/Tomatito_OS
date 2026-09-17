@@ -61,7 +61,11 @@ class BirthdayCelebrationOverlay(QWidget):
         self._text_stage = 0
         self._particles: list[_Particle] = []
 
-        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.SubWindow)
+        self.setWindowFlags(
+            Qt.WindowType.FramelessWindowHint |
+            Qt.WindowType.WindowStaysOnTopHint |
+            Qt.WindowType.Tool
+        )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.hide()
 
@@ -74,12 +78,17 @@ class BirthdayCelebrationOverlay(QWidget):
 
     def start_sequence(self):
         """Inicia la secuencia de celebración con la pausa de 1 segundo."""
-        if self.parent():
-            self.setGeometry(self.parent().rect())
-        self.show()
+        self._opacity = 0.0
+        self._text_stage = 0
+        self.showFullScreen()
         self.raise_()
+        self.activateWindow()
 
         # 1 segundo de silencio
+        try:
+            self._seq_timer.timeout.disconnect()
+        except Exception:
+            pass
         self._seq_timer.timeout.connect(self._phase_1_reveal)
         self._seq_timer.start(1000)
 
