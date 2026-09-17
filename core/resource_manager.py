@@ -143,8 +143,9 @@ class ResourceManager:
         if not os.path.isdir(directory):
             return []
         results = []
-        for fname in sorted(os.listdir(directory)):
-            ext = os.path.splitext(fname)[1].lower()
-            if ext in SUPPORTED_IMAGE_EXTENSIONS:
-                results.append(os.path.join(directory, fname))
+        for root, _, files in os.walk(directory):
+            for fname in sorted(files):
+                ext = os.path.splitext(fname)[1].lower()
+                if ext in SUPPORTED_IMAGE_EXTENSIONS:
+                    results.append(os.path.join(root, fname))
         return results

@@ -82,6 +82,11 @@ class _AlbumCard(QWidget):
         self.update()
         super().leaveEvent(event)
 
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.double_clicked.emit()
+        super().mousePressEvent(event)
+
     def mouseDoubleClickEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
             self.double_clicked.emit()
