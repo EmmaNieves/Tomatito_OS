@@ -82,17 +82,19 @@ class BirthdayCelebrationOverlay(QWidget):
         self._timer_phase2.timeout.connect(self._phase_2_applause)
 
     def start_sequence(self):
-        """Inicia la secuencia de celebración con la pausa de 1 segundo."""
-        self._opacity = 0.0
+        """Inicia la secuencia de celebración con la pausa sutil."""
+        self._opacity = 0.05
         self._text_stage = 0
         self._timer_phase1.stop()
         self._timer_phase2.stop()
+        if self.parent():
+            self.setGeometry(self.parent().rect())
         self.showFullScreen()
         self.raise_()
         self.activateWindow()
 
-        # 1 segundo de silencio
-        self._timer_phase1.start(1000)
+        # Pausa sutil de inicio
+        self._timer_phase1.start(700)
 
     def _phase_1_reveal(self):
         # Generar partículas

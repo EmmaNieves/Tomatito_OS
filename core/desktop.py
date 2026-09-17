@@ -263,10 +263,10 @@ class Desktop(QWidget):
         """
         try:
             all_app_ids = {app_def.app_id for app_def in self._registry.all()}
-            if all_app_ids and self._visited_apps.issuperset(all_app_ids):
+            if len(self._visited_apps) >= len(all_app_ids) or self._visited_apps.issuperset(all_app_ids):
                 if len(self._open_apps) == 0:
                     if not self._event_manager.has_occurred("GAME_COMPLETED"):
-                        QTimer.singleShot(400, lambda: self._event_manager.trigger("GAME_COMPLETED"))
+                        QTimer.singleShot(250, lambda: self._event_manager.trigger("GAME_COMPLETED"))
         except Exception:
             pass
 
