@@ -42,23 +42,29 @@ class _AlbumCard(QWidget):
         icon_area = QLabel()
         icon_area.setAlignment(Qt.AlignmentFlag.AlignCenter)
         icon_area.setFixedSize(80, 70)
+        icon_area.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
 
         if album.get("cover"):
             from PyQt6.QtGui import QPixmap
             import io
             try:
                 cover_path = album["cover"]
-                px = QPixmap(cover_path)
-                if px.isNull():
-                    from PIL import Image
-                    img = Image.open(cover_path)
-                    img.thumbnail((72, 62), Image.LANCZOS)
-                    buf = io.BytesIO()
-                    img.save(buf, format="PNG")
-                    px = QPixmap()
-                    px.loadFromData(buf.getvalue())
+                ext = os.path.splitext(cover_path)[1].lower()
+                
+                if ext in {".mp4", ".avi", ".mkv", ".mov"}:
+                    px = QPixmap() # Fallback for videos
                 else:
-                    px = px.scaled(72, 62, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+                    px = QPixmap(cover_path)
+                    if px.isNull():
+                        from PIL import Image
+                        img = Image.open(cover_path)
+                        img.thumbnail((72, 62), Image.LANCZOS)
+                        buf = io.BytesIO()
+                        img.save(buf, format="PNG")
+                        px = QPixmap()
+                        px.loadFromData(buf.getvalue())
+                    else:
+                        px = px.scaled(72, 62, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
                 
                 if not px.isNull():
                     icon_area.setPixmap(px)
@@ -66,19 +72,20 @@ class _AlbumCard(QWidget):
                         "border: 2px solid #CCCCCC; background: #FFFFFF; border-radius: 2px;"
                     )
                 else:
-                    icon_area.setText("👥" if album.get("id", "").lower() == "amigos" else "📁")
+                    icon_area.setText("📁")
                     icon_area.setStyleSheet("font-size: 48px; background: transparent;")
             except Exception:
-                icon_area.setText("👥" if album.get("id", "").lower() == "amigos" else "📁")
+                icon_area.setText("📁")
                 icon_area.setStyleSheet("font-size: 48px; background: transparent;")
         else:
-            icon_area.setText("👥" if album.get("id", "").lower() == "amigos" else "📁")
+            icon_area.setText("📁")
             icon_area.setStyleSheet("font-size: 48px; background: transparent;")
 
         layout.addWidget(icon_area, 0, Qt.AlignmentFlag.AlignCenter)
 
         name_lbl = QLabel(album["name"])
         name_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        name_lbl.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         name_lbl.setStyleSheet(
             "font-size: 12px; font-weight: bold; color: #222222; background: transparent;"
         )
@@ -168,8 +175,9 @@ class _AlbumListView(QWidget):
         sep.setStyleSheet("color: #316AC5;")
         sb_layout.addWidget(sep)
 
-        hint = QLabel("Haz doble clic\nen un álbum\npara abrirlo.")
-        hint.setStyleSheet("color: #444444; font-size: 10px; background: transparent;")
+        hint = QLabel("Recuerditos para\nque nunca los\nolvides")
+        hint.setStyleSheet("color: #444444; font-size: 11px; font-weight: bold; background: transparent;")
+        hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
         hint.setWordWrap(True)
         sb_layout.addWidget(hint)
         sb_layout.addStretch()
@@ -279,18 +287,39 @@ class GalleryApp(BaseApp):
     def _open_photo_viewer(self, paths: list, index: int) -> None:
         """Abre el visor de fotografía."""
         if self._photo_viewer is not None:
+            try:
+                self._photo_viewer.cleanup()
+            except Exception:
+                pass
             self._stack.removeWidget(self._photo_viewer)
             self._photo_viewer.deleteLater()
 
-        self._photo_viewer = PhotoViewer(paths, index)
+        album_name = ""
+        if self._album_view is not None:
+            album_name = self._album_view._album_name
+
+        self._photo_viewer = PhotoViewer(paths, index, album_name=album_name)
         self._photo_viewer.back_requested.connect(self._return_from_photo_viewer)
         self._stack.addWidget(self._photo_viewer)
         self._stack.setCurrentWidget(self._photo_viewer)
 
     def _return_from_photo_viewer(self) -> None:
+        if hasattr(self, '_photo_viewer') and self._photo_viewer is not None:
+            try:
+                self._photo_viewer.cleanup()
+            except Exception:
+                pass
         if self._album_view is not None:
             self._stack.setCurrentWidget(self._album_view)
         elif self._person_detail is not None:
             self._stack.setCurrentWidget(self._person_detail)
         else:
             self._go_to_albums()
+
+    def closeEvent(self, event):
+        if hasattr(self, '_photo_viewer') and self._photo_viewer is not None:
+            try:
+                self._photo_viewer.cleanup()
+            except Exception:
+                pass
+        super().closeEvent(event)

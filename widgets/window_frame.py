@@ -32,8 +32,9 @@ class _TitleBarButton(QPushButton):
         self._hovered = False
         self.setFixedSize(21, 21)
         self.setCursor(Qt.CursorShape.ArrowCursor)
-        self.setFont(QFont("Marlett", 7, QFont.Weight.Bold))
-
+        self.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
+        # Ajustar ligeramente la posición del texto en paintEvent
+    
     def enterEvent(self, event):
         self._hovered = True
         self.update()
@@ -60,7 +61,9 @@ class _TitleBarButton(QPushButton):
 
         painter.setPen(QPen(QColor(TEXT_LIGHT), 1))
         painter.setFont(self.font())
-        painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, self.text())
+        # Ajuste vertical
+        y_offset = -2 if self.text() == "—" else -1
+        painter.drawText(self.rect().adjusted(0, y_offset, 0, 0), Qt.AlignmentFlag.AlignCenter, self.text())
         painter.end()
 
 
@@ -91,9 +94,9 @@ class _TitleBar(QWidget):
         )
         layout.addWidget(self._title_label, 1)
 
-        self.btn_min   = _TitleBarButton("0", BTN_MINMAX_BG, BTN_MINMAX_HOVER)
-        self.btn_max   = _TitleBarButton("1", BTN_MINMAX_BG, BTN_MINMAX_HOVER)
-        self.btn_close = _TitleBarButton("r", BTN_CLOSE_BG,  BTN_CLOSE_HOVER)
+        self.btn_min   = _TitleBarButton("—", BTN_MINMAX_BG, BTN_MINMAX_HOVER)
+        self.btn_max   = _TitleBarButton("□", BTN_MINMAX_BG, BTN_MINMAX_HOVER)
+        self.btn_close = _TitleBarButton("✕", BTN_CLOSE_BG,  BTN_CLOSE_HOVER)
         self.btn_min.setToolTip("Minimizar")
         self.btn_max.setToolTip("Maximizar")
         self.btn_close.setToolTip("Cerrar")
@@ -254,10 +257,23 @@ class WindowFrame(QWidget):
         self._anim_fade.start()
 
     def _request_close(self):
+        import logging
+        logging.info(f"[WINDOW] _request_close() ENTER para '{self._title}'")
+        hide = getattr(self, "hide_on_close", False)
+        if callable(hide): hide = hide()
+        
+        if hide:
+            logging.info(f"[WINDOW] hide_on_close is True for '{self._title}', minimizing instead")
+            self.minimize_requested.emit()
+            return
+            
         self._cleanup_content()
         self._emit_close_requested()
+        logging.info(f"[WINDOW] native close() for '{self._title}'")
         self.close()
+        logging.info(f"[WINDOW] deleteLater() for '{self._title}'")
         self.deleteLater()
+        logging.info(f"[WINDOW] _request_close() EXIT para '{self._title}'")
 
     def _cleanup_content(self):
         if hasattr(self, "_content_layout") and self._content_layout:
@@ -272,12 +288,17 @@ class WindowFrame(QWidget):
     def _emit_close_requested(self):
         if not self._close_emitted:
             self._close_emitted = True
+            import logging
+            logging.info(f"[WINDOW] close_requested.emit() for '{self._title}'")
             self.close_requested.emit()
 
     def closeEvent(self, event: QCloseEvent) -> None:
+        import logging
+        logging.info(f"[WINDOW] closeEvent() ENTER para '{self._title}'")
         self._cleanup_content()
         self._emit_close_requested()
         super().closeEvent(event)
+        logging.info(f"[WINDOW] closeEvent() EXIT para '{self._title}'")
 
     def _toggle_maximize(self):
         if self._is_maximized_custom:

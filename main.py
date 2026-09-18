@@ -93,8 +93,66 @@ def _register_apps(registry: AppRegistry) -> None:
     ))
 
 
+import logging
+import traceback
+import sys
+
+# Configuración de logging de diagnóstico (Flush inmediato a bajo nivel)
+log_file = os.path.join(BASE_DIR, "debug_output.txt")
+
+# Borrar handlers previos si los hay
+root_logger = logging.getLogger()
+if root_logger.hasHandlers():
+    root_logger.handlers.clear()
+root_logger.setLevel(logging.DEBUG)
+
+class ImmediateFlushFileHandler(logging.FileHandler):
+    def emit(self, record):
+        super().emit(record)
+        self.flush()
+
+# Crear el handler
+file_handler = ImmediateFlushFileHandler(log_file, mode='w', encoding='utf-8')
+formatter = logging.Formatter("[%(asctime)s.%(msecs)03d] %(message)s", datefmt="%H:%M:%S")
+file_handler.setFormatter(formatter)
+root_logger.addHandler(file_handler)
+
+def handle_exception(exc_type, exc_value, exc_traceback):
+    logging.critical("========== UNHANDLED EXCEPTION ==========")
+    logging.critical("".join(traceback.format_exception(exc_type, exc_value, exc_traceback)))
+    logging.critical("=========================================")
+    # Asegurar flush en excepciones
+    for h in logging.getLogger().handlers:
+        h.flush()
+sys.excepthook = handle_exception
+
+def qt_message_handler(mode, context, message):
+    msg = f"QtMessage: {message} (file: {context.file}, line: {context.line})"
+    if mode == QtMsgType.QtDebugMsg:
+        logging.debug(msg)
+    elif mode == QtMsgType.QtInfoMsg:
+        logging.info(msg)
+    elif mode == QtMsgType.QtWarningMsg:
+        logging.warning(msg)
+    elif mode == QtMsgType.QtCriticalMsg:
+        logging.critical(msg)
+    elif mode == QtMsgType.QtFatalMsg:
+        logging.critical(f"FATAL: {msg}")
+        
+from PyQt6.QtCore import qInstallMessageHandler, QtMsgType
+qInstallMessageHandler(qt_message_handler)
+
+# FLAGS DE DIAGNÓSTICO (El usuario puede cambiarlos)
+BIRTHDAY_DIAGNOSTIC_NO_AUDIO = False
+BIRTHDAY_DIAGNOSTIC_NO_OVERLAY = False
+BIRTHDAY_DIAGNOSTIC_NO_TIMER = False
+os.environ["BIRTHDAY_NO_AUDIO"] = "1" if BIRTHDAY_DIAGNOSTIC_NO_AUDIO else "0"
+os.environ["BIRTHDAY_NO_OVERLAY"] = "1" if BIRTHDAY_DIAGNOSTIC_NO_OVERLAY else "0"
+os.environ["BIRTHDAY_NO_TIMER"] = "1" if BIRTHDAY_DIAGNOSTIC_NO_TIMER else "0"
+
 def main() -> None:
-    # Habilitar DPI alto antes de crear QApplication
+    logging.info("================ STARTING TOMATITO OS ================")
+    
     QApplication.setHighDpiScaleFactorRoundingPolicy(
         Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
     )
@@ -102,20 +160,17 @@ def main() -> None:
     app = QApplication(sys.argv)
     app.setApplicationName("tomatitOS")
     app.setApplicationDisplayName("tomatitOS")
+    
+    app.aboutToQuit.connect(lambda: logging.info("[APP] aboutToQuit emitted"))
 
-    # Fuente por defecto (Tahoma es emblemática de XP)
     default_font = QFont("Tahoma", 9)
     app.setFont(default_font)
-
-    # Aplicar tema global
     app.setStyleSheet(QSS_THEME)
 
-    # Inicializar subsistemas
     resources = ResourceManager()
     sounds    = SoundManager(resources)
     registry  = AppRegistry()
 
-    # Asignar icono global de la aplicación (barra de tareas y ventanas)
     from PyQt6.QtGui import QIcon
     icon_path = resources.get_icon_path("tomatito")
     if icon_path:
@@ -123,11 +178,11 @@ def main() -> None:
 
     _register_apps(registry)
 
-    # 1. Crear la pantalla de inicio negra primero
     splash = SplashScreen(sounds=sounds)
-
-    # 2. Crear e iniciar el escritorio de tomatitOS en segundo plano detrás del splash
     desktop = Desktop(resources, sounds, registry)
+    
+    desktop.destroyed.connect(lambda: logging.info("[DESKTOP] DESTROYED"))
+    
     desktop.showFullScreen()
     splash.raise_()
     splash.activateWindow()
@@ -140,7 +195,6 @@ def main() -> None:
     splash.finished.connect(_on_splash_finished)
 
     sys.exit(app.exec())
-
 
 if __name__ == "__main__":
     main()

@@ -25,6 +25,11 @@ def _make_thumbnail(path: str, size: int) -> QPixmap:
     """Genera una miniatura de forma 100% segura sin punteros corruptos."""
     if not path or not os.path.exists(path):
         return QPixmap()
+        
+    ext = os.path.splitext(path)[1].lower()
+    if ext in {".mp4", ".avi", ".mkv", ".mov"}:
+        return QPixmap()  # No intentar leer videos como imágenes
+        
     try:
         pix = QPixmap(path)
         if not pix.isNull():
@@ -44,10 +49,11 @@ def _make_thumbnail(path: str, size: int) -> QPixmap:
 class _Thumbnail(QWidget):
     """Widget de miniatura individual con efecto hover."""
 
-    clicked = pyqtSignal(int)  # índice dentro del álbum
+    clicked = pyqtSignal(int)  # Índice dentro del álbum
 
     def __init__(self, path: str, index: int, parent=None):
         super().__init__(parent)
+        self._path = path
         self._index = index
         self._hovered = False
         self.setFixedSize(THUMB_SIZE + 8, THUMB_SIZE + 8)
@@ -59,25 +65,33 @@ class _Thumbnail(QWidget):
         layout.setSpacing(0)
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        # Imagen
-        self._img_label = QLabel()
+        # Imagen (placeholder inicial)
+        self._img_label = QLabel("⏳")
         self._img_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._img_label.setFixedSize(THUMB_SIZE, THUMB_SIZE)
-        self._img_label.setStyleSheet(
-            "border: 2px solid #CCCCCC; background: #FFFFFF;"
-        )
+        self._img_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        self._img_label.setStyleSheet("font-size: 32px; border: 2px solid #CCCCCC; background: #EEF3FF;")
+        layout.addWidget(self._img_label, 0, Qt.AlignmentFlag.AlignCenter)
 
-        px = _make_thumbnail(path, THUMB_SIZE)
+        # Diferir la carga para no congelar la UI si hay muchas imágenes
+        # Se maneja desde el AlbumView a través de QThread
+
+    def _set_loaded_pixmap(self, px):
         if not px.isNull():
             self._img_label.setPixmap(
                 px.scaled(THUMB_SIZE - 4, THUMB_SIZE - 4,
                           Qt.AspectRatioMode.KeepAspectRatio,
                           Qt.TransformationMode.SmoothTransformation)
             )
+            self._img_label.setStyleSheet("border: 2px solid #CCCCCC; background: #FFFFFF;")
         else:
-            self._img_label.setText("?")
-
-        layout.addWidget(self._img_label, 0, Qt.AlignmentFlag.AlignCenter)
+            import os
+            ext = os.path.splitext(self._path)[1].lower()
+            if ext in {".mp4", ".avi", ".mkv", ".mov"}:
+                self._img_label.setText("🎬")
+            else:
+                self._img_label.setText("🖼️")
+            self._img_label.setStyleSheet("font-size: 32px; border: 2px solid #CCCCCC; background: #EEF3FF;")
 
     def enterEvent(self, event):
         self._hovered = True
@@ -184,8 +198,60 @@ class AlbumView(QWidget):
 
     def _populate_grid(self):
         COLS = 5
+        self._thumbs = []
         for i, path in enumerate(self._paths):
             thumb = _Thumbnail(path, i)
             thumb.clicked.connect(lambda idx: self.photo_selected.emit(self._paths, idx))
             row, col = divmod(i, COLS)
             self._grid.addWidget(thumb, row, col)
+            self._thumbs.append(thumb)
+
+        from PyQt6.QtCore import QThread, pyqtSignal
+        from PyQt6.QtGui import QImage
+        import io
+        from PIL import Image
+        import os
+        
+        class LoaderThread(QThread):
+            thumb_ready = pyqtSignal(int, QImage)
+            def __init__(self, paths):
+                super().__init__()
+                self.paths = paths
+            def run(self):
+                for i, path in enumerate(self.paths):
+                    img_out = QImage()
+                    ext = os.path.splitext(path)[1].lower()
+                    if ext not in {".mp4", ".avi", ".mkv", ".mov"}:
+                        try:
+                            from PyQt6.QtGui import QImageReader
+                            reader = QImageReader(path)
+                            reader.setAutoTransform(True)
+                            temp = reader.read()
+                            if not temp.isNull():
+                                img_out = temp.scaled(THUMB_SIZE, THUMB_SIZE, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+                            else:
+                                from PIL import ImageOps
+                                pil_img = Image.open(path)
+                                pil_img = ImageOps.exif_transpose(pil_img)
+                                pil_img.thumbnail((THUMB_SIZE, THUMB_SIZE), Image.LANCZOS)
+                                buf = io.BytesIO()
+                                pil_img.save(buf, format="PNG")
+                                img_out.loadFromData(buf.getvalue())
+                        except Exception:
+                            pass
+                    self.thumb_ready.emit(i, img_out)
+
+        self._loader = LoaderThread(self._paths)
+        self._loader.thumb_ready.connect(self._on_thumb_ready)
+        self._loader.start()
+
+    def _on_thumb_ready(self, index, img):
+        if index < len(self._thumbs):
+            px = QPixmap.fromImage(img)
+            self._thumbs[index]._set_loaded_pixmap(px)
+
+    def closeEvent(self, event):
+        if hasattr(self, '_loader') and self._loader.isRunning():
+            self._loader.quit()
+            self._loader.wait()
+        super().closeEvent(event)

@@ -1,4 +1,4 @@
-"""
+﻿"""
 sound_manager.py — Gestor de audio de Tomatito.
 
 Características:
@@ -10,7 +10,7 @@ Características:
 """
 
 from PyQt6.QtMultimedia import QSoundEffect, QMediaPlayer, QAudioOutput
-from PyQt6.QtCore import QUrl
+from PyQt6.QtCore import QUrl, QObject
 from core.resource_manager import ResourceManager
 
 
@@ -24,15 +24,19 @@ class SoundEvent:
     NOTIFICATION  = "notification"
     MINIMIZE      = "minimize"
     BALLOON       = "balloon"
+    BIRTHDAY_APPLAUSE = "birthday_applause"
+    BIRTHDAY_MUSIC    = "birthday_music"
+    BIRTHDAY_FIREWORK = "birthday_firework"
+    FIREWORK      = "firework"
 
-
-class SoundManager:
+class SoundManager(QObject):
     """
     Gestor central de audio. Se instancia una vez en Desktop y se
     distribuye a los módulos que necesiten reproducir sonidos.
     """
 
-    def __init__(self, resources: ResourceManager):
+    def __init__(self, resources: ResourceManager, parent: QObject | None = None):
+        super().__init__(parent)
         self._resources = resources
         self._enabled = True
         # Cache de efectos de sonido para reutilización rápida
@@ -44,20 +48,26 @@ class SoundManager:
         """Habilita o deshabilita todos los sonidos."""
         self._enabled = enabled
 
+    def stop(self, event: str) -> None:
+        effect = self._effects.get(event)
+        if effect is not None:
+            effect.stop()
+            
     def play(self, event: str) -> None:
-        """
-        Reproduce el sonido asociado a un evento.
-        Si el archivo no existe o hay error, no hace nada.
-        """
         if not self._enabled:
             return
 
         if event not in self._effects:
             self._effects[event] = self._load_effect(event)
 
-        effect = self._effects[event]
+        effect = self._effects.get(event)
         if effect is not None:
-            effect.play()
+            try:
+                if hasattr(effect, 'setPosition'):
+                    effect.setPosition(0)
+                effect.play()
+            except Exception as e:
+                print(f"SOUND ERROR: {e}")
 
     # ── Atajos para los eventos más comunes ───────────────────────────────
 
@@ -69,18 +79,40 @@ class SoundManager:
     def play_minimize(self)      -> None: self.play(SoundEvent.MINIMIZE)
     def play_notification(self)  -> None: self.play(SoundEvent.NOTIFICATION)
     def play_balloon(self)       -> None: self.play(SoundEvent.BALLOON)
+    def play_birthday_applause(self)-> None: self.play(SoundEvent.BIRTHDAY_APPLAUSE)
+    def play_birthday_music(self)   -> None: self.play(SoundEvent.BIRTHDAY_MUSIC)
+    def stop_birthday_music(self)   -> None: self.stop(SoundEvent.BIRTHDAY_MUSIC)
+    def play_birthday_firework(self)-> None: self.play(SoundEvent.BIRTHDAY_FIREWORK)
+    def play_firework(self)      -> None: self.play(SoundEvent.FIREWORK)
 
     # ── Helpers internos ──────────────────────────────────────────────────
 
-    def _load_effect(self, name: str) -> "QSoundEffect | None":
-        """Carga un QSoundEffect desde assets/sounds/. Devuelve None si falla."""
+    def _load_effect(self, name: str):
+        """Carga un efecto desde assets/sounds/. Devuelve QSoundEffect o QMediaPlayer."""
         path = self._resources.get_sound_path(name)
         if path is None:
             return None
         try:
-            effect = QSoundEffect()
-            effect.setSource(QUrl.fromLocalFile(path))
-            effect.setVolume(0.8)
-            return effect
-        except Exception:
+            ext = __import__("os").path.splitext(path)[1].lower()
+            if ext == ".wav":
+                effect = QSoundEffect(self)
+                effect.setSource(QUrl.fromLocalFile(path))
+                if name == SoundEvent.BIRTHDAY_MUSIC:
+                    effect.setLoopCount(-2)
+                effect.setVolume(0.8)
+                return effect
+            else:
+                from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput
+                player = QMediaPlayer(self)
+                audio = QAudioOutput(self)
+                audio.setVolume(0.8)
+                player.setAudioOutput(audio)
+                player.setSource(QUrl.fromLocalFile(path))
+                # Mantener vivo el audio output
+                player.setProperty("audio_out", audio)
+                if name == SoundEvent.BIRTHDAY_MUSIC:
+                    player.setLoops(-1)
+                return player
+        except Exception as e:
+            print(f"SOUND ERROR: {e}")
             return None

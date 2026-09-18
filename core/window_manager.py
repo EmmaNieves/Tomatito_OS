@@ -51,9 +51,13 @@ class WindowManager(QObject):
 
     def unregister(self, window: "WindowFrame") -> None:
         """Elimina una ventana del registro."""
+        import logging
+        logging.info(f"[WINDOW_MANAGER] unregister() ENTER para ventana")
         if window in self._windows:
             self._windows.remove(window)
+            logging.info(f"[WINDOW_MANAGER] window removed. remaining windows = {len(self._windows)}")
             self.window_closed.emit(window)
+        logging.info(f"[WINDOW_MANAGER] unregister() EXIT")
 
     # ── Z-order ───────────────────────────────────────────────────────────
 

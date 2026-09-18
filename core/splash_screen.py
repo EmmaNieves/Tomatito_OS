@@ -239,7 +239,7 @@ class SplashScreen(QWidget):
         # usamos color sólido blanco limpio para el título
         painter.setPen(QColor(255, 255, 255, alpha))
         painter.drawText(QRect(cx - 200, cy - 40, 400, 60),
-                         Qt.AlignmentFlag.AlignCenter, "Tomatito")
+                         Qt.AlignmentFlag.AlignCenter, "tomatitOS")
 
         # Línea decorativa bajo el título
         line_y = cy + 28

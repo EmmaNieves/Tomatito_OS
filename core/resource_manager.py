@@ -12,8 +12,10 @@ import os
 import sys
 
 
-# Extensiones de imagen admitidas
-SUPPORTED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
+# Extensiones admitidas
+SUPPORTED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
+SUPPORTED_VIDEO_EXTENSIONS = {".mp4", ".avi", ".mov", ".mkv"}
+SUPPORTED_MEDIA_EXTENSIONS = SUPPORTED_IMAGE_EXTENSIONS | SUPPORTED_VIDEO_EXTENSIONS
 
 
 def _get_base_dir() -> str:
@@ -90,7 +92,7 @@ class ResourceManager:
         sounds_dir = self.assets_path("sounds")
         if not os.path.isdir(sounds_dir):
             return None
-        audio_exts = {".wav", ".mp3", ".ogg"}
+        audio_exts = {".wav", ".mp3", ".ogg", ".m4a", ".aac", ".flac"}
         for fname in os.listdir(sounds_dir):
             stem, ext = os.path.splitext(fname)
             if stem == name and ext.lower() in audio_exts:
@@ -128,24 +130,48 @@ class ResourceManager:
             )
         return albums
 
+    @staticmethod
+    def _get_media_date(path: str) -> float:
+        import os
+        ext = os.path.splitext(path)[1].lower()
+        if ext not in {".mp4", ".avi", ".mkv", ".mov"}:
+            try:
+                from PIL import Image
+                from PIL.ExifTags import TAGS
+                import datetime
+                img = Image.open(path)
+                exif_data = img.getexif()
+                if exif_data:
+                    for tag_id, value in exif_data.items():
+                        tag = TAGS.get(tag_id, tag_id)
+                        if tag in ("DateTimeOriginal", "DateTime"):
+                            dt = datetime.datetime.strptime(value, "%Y:%m:%d %H:%M:%S")
+                            return dt.timestamp()
+            except Exception:
+                pass
+        try:
+            return min(os.path.getmtime(path), os.path.getctime(path))
+        except Exception:
+            return 0.0
+
     def get_photos_in_album(self, album_path: str) -> list[str]:
         """
-        Devuelve las rutas de todas las imágenes en un álbum,
-        ordenadas alfabéticamente.
+        Devuelve las rutas de todas las imágenes en un álbum.
         """
-        return self._scan_images(album_path)
+        paths = self._scan_images(album_path)
+        return paths
 
     # ── Helpers internos ──────────────────────────────────────────────────
 
     @staticmethod
     def _scan_images(directory: str) -> list[str]:
-        """Escanea un directorio y devuelve rutas de imágenes soportadas."""
+        """Escanea un directorio y devuelve rutas de archivos multimedia soportados."""
         if not os.path.isdir(directory):
             return []
         results = []
         for root, _, files in os.walk(directory):
             for fname in sorted(files):
                 ext = os.path.splitext(fname)[1].lower()
-                if ext in SUPPORTED_IMAGE_EXTENSIONS:
+                if ext in SUPPORTED_MEDIA_EXTENSIONS:
                     results.append(os.path.join(root, fname))
         return results

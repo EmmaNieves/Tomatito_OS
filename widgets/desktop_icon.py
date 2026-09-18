@@ -75,13 +75,20 @@ class DesktopIcon(QWidget):
     def _update_label_style(self):
         if self._selected:
             self._text_label.setStyleSheet(
-                "color: #ffffff; background-color: #0b61a4; border-radius: 2px; padding: 1px 2px;"
+                "color: #ffffff; background-color: #0b61a4; border-radius: 2px; padding: 1px 2px; font-weight: bold;"
             )
+            self._text_label.setGraphicsEffect(None)
         else:
-            # Texto blanco con sombra drop-shadow sutil estilo XP
             self._text_label.setStyleSheet(
                 "color: #ffffff; background: transparent; font-weight: bold;"
             )
+            # Aplicar sombra realista
+            from PyQt6.QtWidgets import QGraphicsDropShadowEffect
+            shadow = QGraphicsDropShadowEffect(self)
+            shadow.setBlurRadius(4)
+            shadow.setColor(QColor(0, 0, 0, 200))
+            shadow.setOffset(1, 1)
+            self._text_label.setGraphicsEffect(shadow)
 
     def set_selected(self, selected: bool) -> None:
         self._selected = selected

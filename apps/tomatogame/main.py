@@ -26,8 +26,27 @@ def current_zone(zones, x):
 
 def main():
     pygame.init()
-    screen = pygame.display.set_mode((settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT), pygame.NOFRAME)
+    info = pygame.display.Info()
+    desktop_w, desktop_h = info.current_w, info.current_h
+    
+    screen = pygame.display.set_mode((desktop_w, desktop_h), pygame.FULLSCREEN | pygame.NOFRAME)
     pygame.display.set_caption(settings.TITLE)
+    
+    # Calcular el escalado para mantener el aspect ratio
+    game_ratio = settings.SCREEN_WIDTH / settings.SCREEN_HEIGHT
+    screen_ratio = desktop_w / desktop_h
+    
+    if screen_ratio > game_ratio:
+        # Pantalla más ancha que el juego
+        scale_h = desktop_h
+        scale_w = int(scale_h * game_ratio)
+    else:
+        # Pantalla más alta (o igual) que el juego
+        scale_w = desktop_w
+        scale_h = int(scale_w / game_ratio)
+        
+    offset_x = (desktop_w - scale_w) // 2
+    offset_y = (desktop_h - scale_h) // 2
 
     if sys.platform == "win32":
         try:
@@ -277,8 +296,9 @@ def main():
                 "Gracias por cada paso de esta aventura juntos.",
             )
 
-        scaled = pygame.transform.scale(game_surface, (settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT))
-        screen.blit(scaled, (0, 0))
+        scaled = pygame.transform.scale(game_surface, (scale_w, scale_h))
+        screen.fill((0, 0, 0))  # Rellenar con negro (letterbox)
+        screen.blit(scaled, (offset_x, offset_y))
         pygame.display.flip()
 
     pygame.quit()

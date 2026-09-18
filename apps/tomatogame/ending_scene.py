@@ -393,8 +393,23 @@ def run_ending_scene(screen, clock, assets, audio, player, font, font_checkpoint
         ending_surface.blit(shadow, (title_pos.x + 3, title_pos.y + 3))
         ending_surface.blit(title, title_pos)
 
-        scaled = pygame.transform.scale(ending_surface, screen.get_size())
-        screen.blit(scaled, (0, 0))
+        desktop_w, desktop_h = screen.get_size()
+        game_ratio = settings.SCREEN_WIDTH / settings.SCREEN_HEIGHT
+        screen_ratio = desktop_w / desktop_h
+        
+        if screen_ratio > game_ratio:
+            scale_h = desktop_h
+            scale_w = int(scale_h * game_ratio)
+        else:
+            scale_w = desktop_w
+            scale_h = int(scale_w / game_ratio)
+            
+        offset_x = (desktop_w - scale_w) // 2
+        offset_y = (desktop_h - scale_h) // 2
+
+        scaled = pygame.transform.scale(ending_surface, (scale_w, scale_h))
+        screen.fill((0, 0, 0))
+        screen.blit(scaled, (offset_x, offset_y))
         pygame.display.flip()
 
     audio.stop_ending_sfx()

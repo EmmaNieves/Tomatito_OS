@@ -89,7 +89,12 @@ class Desktop(QWidget):
         self._visited_apps: set[str] = set()           # Apps abiertas durante esta sesión
 
         self._event_manager = EventManager(self)
-        self._birthday_overlay = BirthdayCelebrationOverlay(sounds=self._sounds, parent=self)
+        self._birthday_overlay = BirthdayCelebrationOverlay(
+            sounds=self._sounds, 
+            resources=self._resources, 
+            parent=self
+        )
+        self._birthday_overlay.destroyed.connect(lambda: __import__('logging').info("[BIRTHDAY] OVERLAY DESTROYED"))
         self._event_manager.event_triggered.connect(self._on_event_triggered)
 
         # Quitar decoración del sistema operativo host
@@ -102,7 +107,18 @@ class Desktop(QWidget):
 
     def _on_event_triggered(self, event_name: str) -> None:
         if event_name == "GAME_COMPLETED":
-            self._birthday_overlay.start_sequence()
+            # Pausar la música si está sonando
+            if "music" in self._open_apps:
+                try:
+                    from PyQt6.QtMultimedia import QMediaPlayer
+                    music_app = self._open_apps["music"]._content_layout.itemAt(0).widget()
+                    if hasattr(music_app, "_player") and music_app._player:
+                        if music_app._player.playbackState() == QMediaPlayer.PlaybackState.PlayingState:
+                            music_app._player.pause()
+                except Exception:
+                    pass
+            if not self._birthday_overlay.isVisible():
+                self._birthday_overlay.start_sequence()
 
     # ── Construcción UI ───────────────────────────────────────────────────
 
@@ -196,6 +212,20 @@ class Desktop(QWidget):
         Lanza o restaura una aplicación.
         Cada app tiene una sola instancia (si ya está abierta, se trae al frente).
         """
+        # Si abre el juego, pausar música si está sonando
+        if app_id == "tomatogame":
+            if "music" in self._open_apps:
+                try:
+                    from PyQt6.QtMultimedia import QMediaPlayer
+                    music_frame = self._open_apps["music"]
+                    music_app = music_frame._content_layout.itemAt(0).widget()
+                    if hasattr(music_app, "_player") and music_app._player:
+                        if music_app._player.playbackState() == QMediaPlayer.PlaybackState.PlayingState:
+                            music_app._player.pause()
+                            self._music_paused_by_game = True
+                except Exception:
+                    pass
+
         # Si ya está abierta, restaurar y enfocar
         if app_id in self._open_apps:
             frame = self._open_apps[app_id]
@@ -225,6 +255,7 @@ class Desktop(QWidget):
             height=520,
             parent=self._work_area,
         )
+        frame.destroyed.connect(lambda f=frame, t=app_def.name: __import__('logging').info(f"[WINDOW] DESTROYED: {t}"))
         frame.set_content(app_instance)
 
         # Centrar la ventana en el área de trabajo
@@ -249,26 +280,70 @@ class Desktop(QWidget):
         self._sounds.play_window_open()
 
     def _on_app_closed(self, app_id: str) -> None:
+        import logging
+        logging.info(f"[DESKTOP] _on_app_closed() ENTER para {app_id}")
+        logging.info(f"[DESKTOP] _open_apps before = {len(self._open_apps)}")
         try:
             self._open_apps.pop(app_id, None)
+            logging.info(f"[DESKTOP] _open_apps after = {len(self._open_apps)}")
             self._sounds.play_window_close()
+            
+            # Reanudar música si se cerró el juego
+            if app_id == "tomatogame" and getattr(self, "_music_paused_by_game", False):
+                self._music_paused_by_game = False
+                if "music" in self._open_apps:
+                    try:
+                        music_app = self._open_apps["music"]._content_layout.itemAt(0).widget()
+                        if hasattr(music_app, "_player") and music_app._player:
+                            music_app._player.play()
+                            if hasattr(music_app, "_btn_play"): music_app._btn_play.setText("⏸")
+                            if hasattr(music_app, "_lbl_now"): music_app._lbl_now.setText("▶  REPRODUCIENDO")
+                            if hasattr(music_app, "_visualizer"): music_app._visualizer.set_playing(True)
+                    except Exception:
+                        pass
+            
+            logging.info(f"[DESKTOP] Llamando a _check_birthday_condition()")
             self._check_birthday_condition()
-        except Exception:
-            pass
+        except Exception as e:
+            logging.error(f"[DESKTOP] Error en _on_app_closed: {e}")
+        logging.info(f"[DESKTOP] _on_app_closed() EXIT")
 
     def _check_birthday_condition(self) -> None:
-        """
-        Verifica si el usuario ha entrado en todas las aplicaciones registradas
-        y si actualmente no hay ninguna ventana abierta en el escritorio.
-        """
+        import logging
+        import os
+        logging.info(f"[DESKTOP] _check_birthday_condition() ENTER")
         try:
+            # Evitar reentrancia: asegurar que solo se dispare una vez por sesión
+            if getattr(self, "_birthday_triggered", False):
+                logging.info("[BIRTHDAY] Condition ya fue disparada (bloqueada reentrancia).")
+                return
+
             all_app_ids = {app_def.app_id for app_def in self._registry.all()}
+            logging.info(f"[BIRTHDAY] visited: {len(self._visited_apps)}, total: {len(all_app_ids)}, open: {len(self._open_apps)}")
+            
             if len(self._visited_apps) >= len(all_app_ids) or self._visited_apps.issuperset(all_app_ids):
                 if len(self._open_apps) == 0:
+                    logging.info("[BIRTHDAY] Condition satisfied")
                     if not self._event_manager.has_occurred("GAME_COMPLETED"):
-                        QTimer.singleShot(250, lambda: self._event_manager.trigger("GAME_COMPLETED"))
-        except Exception:
-            pass
+                        self._birthday_triggered = True
+                        if os.environ.get("BIRTHDAY_NO_TIMER", "0") == "1":
+                            logging.info("[BIRTHDAY] Diagnostic: NO_TIMER is True, triggering synchronously")
+                            self._event_manager.trigger("GAME_COMPLETED")
+                        else:
+                            logging.info("[BIRTHDAY] Scheduling celebration (QTimer 500ms)")
+                            self._birthday_timer = QTimer(self)
+                            self._birthday_timer.setSingleShot(True)
+                            self._birthday_timer.setInterval(500)
+                            self._birthday_timer.timeout.connect(lambda: self._event_manager.trigger("GAME_COMPLETED"))
+                            self._birthday_timer.start()
+        except Exception as e:
+            logging.error(f"[BIRTHDAY] Error checking condition: {e}")
+        logging.info(f"[DESKTOP] _check_birthday_condition() EXIT")
+
+    def closeEvent(self, event):
+        import logging
+        logging.info(f"[DESKTOP] closeEvent CALLED. Visible={self.isVisible()}, Active={self.isActiveWindow()}, ClosingDown={QApplication.closingDown()}")
+        super().closeEvent(event)
 
     # ── Menú Inicio ───────────────────────────────────────────────────────
 
@@ -282,6 +357,8 @@ class Desktop(QWidget):
 
     def _confirm_shutdown(self):
         """Cierra la aplicación con sonido."""
+        import logging
+        logging.info("[DESKTOP] _confirm_shutdown CALLED (user pressed power button)")
         self._sounds.play_window_close()
         QApplication.quit()
 
@@ -314,4 +391,4 @@ class Desktop(QWidget):
         )
         self._shutdown_btn.lower()
         if hasattr(self, "_birthday_overlay"):
-            self._birthday_overlay.setGeometry(self.rect())
+            self._birthday_overlay.setGeometry(0, 0, self.width(), self.height() - 48)
