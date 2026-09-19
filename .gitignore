@@ -1,9 +1,9 @@
 # Entornos virtuales y temporales
 venv/
 dist/
-dist_usb/
 build/
 *.zip
+!dist_usb/python/python311.zip
 *.spec.bak
 
 # Python cache

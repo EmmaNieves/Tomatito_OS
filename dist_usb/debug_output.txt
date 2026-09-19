@@ -1,0 +1,29 @@
+[11:19:24.204] ================ STARTING TOMATITO OS ================
+[11:19:24.610] QtMessage: Using Qt multimedia with FFmpeg version 7.1.5 LGPL version 2.1 or later (file: None, line: 0)
+[11:19:31.235] [EVENT_MANAGER] trigger() ENTER para GAME_COMPLETED
+[11:19:31.236] [EVENT_MANAGER] event_triggered.emit(GAME_COMPLETED)
+[11:19:31.246] [EVENT_MANAGER] trigger() EXIT para GAME_COMPLETED
+[11:19:47.666] [WINDOW] _request_close() ENTER para 'Reproductor'
+[11:19:47.669] [WINDOW] close_requested.emit() for 'Reproductor'
+[11:19:47.669] [WINDOW_MANAGER] unregister() ENTER para ventana
+[11:19:47.670] [WINDOW_MANAGER] window removed. remaining windows = 0
+[11:19:47.670] [WINDOW_MANAGER] unregister() EXIT
+[11:19:47.671] [DESKTOP] _on_app_closed() ENTER para music
+[11:19:47.671] [DESKTOP] _open_apps before = 1
+[11:19:47.671] [DESKTOP] _open_apps after = 0
+[11:19:47.672] [DESKTOP] Llamando a _check_birthday_condition()
+[11:19:47.672] [DESKTOP] _check_birthday_condition() ENTER
+[11:19:47.672] [BIRTHDAY] visited: 1, total: 4, open: 0
+[11:19:47.673] [DESKTOP] _check_birthday_condition() EXIT
+[11:19:47.673] [DESKTOP] _on_app_closed() EXIT
+[11:19:47.673] [WINDOW] native close() for 'Reproductor'
+[11:19:47.673] [WINDOW] closeEvent() ENTER para 'Reproductor'
+[11:19:47.673] [WINDOW] closeEvent() EXIT para 'Reproductor'
+[11:19:47.673] [WINDOW] deleteLater() for 'Reproductor'
+[11:19:47.674] [WINDOW] _request_close() EXIT para 'Reproductor'
+[11:19:47.685] [WINDOW] DESTROYED: Reproductor
+[11:19:50.742] [DESKTOP] _confirm_shutdown CALLED (user pressed power button)
+[11:19:50.745] [DESKTOP] closeEvent CALLED. Visible=True, Active=True, ClosingDown=False
+[11:19:50.790] [APP] aboutToQuit emitted
+[11:19:50.791] [DESKTOP] DESTROYED
+[11:19:50.795] [BIRTHDAY] OVERLAY DESTROYED
